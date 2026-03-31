@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Home, Search, Plus, Bell, User, 
   MessageSquare, Send, Bookmark, MoreHorizontal, 
   CheckCircle2, FileText, CarFront, ChevronRight, Heart,
-  Mail, Lock, ArrowRight, Github
+  Mail, Lock, ArrowRight, Github, Image as ImageIcon, X, Camera, Video
 } from 'lucide-react';
 
 // --- Business Logic ---
@@ -49,6 +49,7 @@ const POSTS = [
     brand: 'Mercedes-Benz',
     location: '한성자동차 강남전시장',
     image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop',
+    mediaType: 'image',
     likes: 124,
     content: '오늘 S클래스 500 4MATIC 롱바디 출고 완료했습니다. 대기 기간 없이 즉시 출고 가능한 재고 2대 확보 중입니다. 연락처 010-1234-5678 또는 카톡 kakao id: benz123 으로 문의 바랍니다.',
     tags: ['#MercedesBenz', '#SClass', '#즉시출고'],
@@ -65,6 +66,7 @@ const POSTS = [
     brand: 'BMW',
     location: '코오롱모터스 서초',
     image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
+    mediaType: 'image',
     likes: 89,
     content: '5시리즈 하이브리드 모델, 이번 달 한정 프로모션 진행합니다. 법인 플릿 적용 시 추가 혜택이 제공됩니다. 가장 합리적인 견적을 약속드립니다. https://bmw-promo.com',
     tags: ['#BMW', '#5Series', '#법인리스'],
@@ -80,6 +82,7 @@ const POSTS = [
     isVerified: false,
     location: '서울 강남구',
     image: 'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
+    mediaType: 'image',
     likes: 12,
     content: '포르쉐 카이엔 쿠페 플래티넘 에디션 화이트/보르도레드 실내 재고 구합니다. 리스 승계도 고려하고 있습니다. 010-9876-5432 로 연락주세요.',
     tags: ['#Porsche', '#CayenneCoupe', '#재고문의'],
@@ -260,9 +263,13 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
         <button className="text-slate-400 hover:text-slate-900 transition"><MoreHorizontal size={20} /></button>
       </div>
 
-      {/* Post Image */}
+      {/* Post Image/Video */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 group">
-        <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+        {post.mediaType === 'video' ? (
+          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+        ) : (
+          <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+        )}
         
         {/* Elegant Badge */}
         <div className="absolute top-5 right-5">
@@ -339,16 +346,70 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
 const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [currentTab, setCurrentTab] = useState('home');
   const [uploadText, setUploadText] = useState('');
-  const currentUser = { isVerified: false }; // 일반 유저로 가정
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [posts, setPosts] = useState(POSTS);
+  
+  const currentUser = { 
+    user: '현재 유저',
+    avatar: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=150&auto=format&fit=crop',
+    role: 'customer',
+    isVerified: false 
+  }; // 일반 유저로 가정
+
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMediaFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setMediaPreview(previewUrl);
+    }
+  };
+
+  const clearMedia = () => {
+    setMediaFile(null);
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview);
+      setMediaPreview(null);
+    }
+  };
 
   const handleUpload = () => {
-    if (!uploadText.trim()) return;
+    if (!uploadText.trim() && !mediaFile) return;
+    
     if (checkCommercialKeywords(uploadText, currentUser.isVerified)) {
+      const newPost = {
+        id: Date.now(),
+        user: currentUser.user,
+        avatar: currentUser.avatar,
+        role: currentUser.role,
+        isVerified: currentUser.isVerified,
+        brand: '',
+        location: '',
+        image: mediaPreview || '',
+        mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
+        likes: 0,
+        content: filterPrivateInfo(uploadText), // 필터링 적용
+        tags: [],
+        comments: 0,
+        time: 'JUST NOW',
+        type: 'daily'
+      };
+
+      setPosts([newPost, ...posts]);
       alert('게시글이 성공적으로 등록되었습니다.');
       setUploadText('');
+      clearMedia();
       setCurrentTab('home');
     }
   };
+
+  // Cleanup object URLs to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    };
+  }, [mediaPreview]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center font-sans selection:bg-amber-100 selection:text-amber-900">
@@ -419,7 +480,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             >
               <LiveConnectTray />
               <div className="flex flex-col mt-4">
-                {POSTS.map(post => (
+                {posts.map(post => (
                   <PremiumPostCard key={post.id} post={post} />
                 ))}
               </div>
@@ -435,21 +496,79 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center justify-center h-[70vh] px-6 w-full max-w-md mx-auto"
             >
-              <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <h2 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-widest text-center">Create Post</h2>
-                <p className="text-xs text-slate-500 mb-4 text-center">일반 유저는 상업적 키워드(견적, 판매 등)를 사용할 수 없습니다.</p>
+              <div className="w-full bg-white rounded-3xl p-5 shadow-lg border border-slate-100">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-sm font-bold text-slate-800 tracking-wide">새 게시물</span>
+                  <button onClick={() => setCurrentTab('home')} className="text-slate-400 hover:text-slate-600 transition">
+                    <X size={20} strokeWidth={2} />
+                  </button>
+                </div>
+                
+                {/* User Info */}
+                <div className="flex items-center gap-3 mb-4">
+                  <img src={currentUser.avatar} alt="User" className="w-9 h-9 rounded-full object-cover" />
+                  <span className="text-sm font-bold text-slate-900">{currentUser.user}</span>
+                </div>
+
+                {/* Textarea */}
                 <textarea 
-                  className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none mb-4"
-                  placeholder="무슨 생각을 하고 계신가요?"
+                  className="w-full min-h-[120px] p-4 bg-[#F9F9F9] border-none rounded-2xl text-sm focus:outline-none focus:ring-0 resize-none mb-3 text-slate-800 placeholder-slate-400"
+                  placeholder={currentUser.isVerified ? "" : "일반 유저는 상업적 키워드(견적, 판매 등)를 사용할 수 없습니다."}
                   value={uploadText}
-                  onChange={(e) => setUploadText(e.target.value)}
+                  onChange={(e) => {
+                    setUploadText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
                 />
-                <button 
-                  onClick={handleUpload}
-                  className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl transition shadow-md"
-                >
-                  게시하기
-                </button>
+
+                {/* Media Preview */}
+                {mediaPreview && (
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden mb-4 bg-slate-100 border border-slate-200">
+                    <button 
+                      onClick={clearMedia}
+                      className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition z-10"
+                    >
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                    {mediaFile?.type.startsWith('video/') ? (
+                      <video src={mediaPreview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                )}
+
+                {/* Footer Actions */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-4 text-slate-400">
+                    <label className="cursor-pointer hover:text-amber-600 transition">
+                      <Camera size={22} strokeWidth={1.5} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaChange} />
+                    </label>
+                    <label className="cursor-pointer hover:text-amber-600 transition">
+                      <ImageIcon size={22} strokeWidth={1.5} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaChange} />
+                    </label>
+                    <label className="cursor-pointer hover:text-amber-600 transition">
+                      <Video size={22} strokeWidth={1.5} />
+                      <input type="file" accept="video/*" className="hidden" onChange={handleMediaChange} />
+                    </label>
+                  </div>
+                  
+                  <button 
+                    onClick={handleUpload}
+                    disabled={!uploadText.trim() && !mediaFile}
+                    className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
+                      (!uploadText.trim() && !mediaFile) 
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                        : 'bg-slate-900 text-white hover:bg-black shadow-md'
+                    }`}
+                  >
+                    게시
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -524,10 +643,17 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
           ))}
         </div>
         
-        <div className="mt-12 px-2 text-[10px] text-slate-400 leading-loose tracking-widest uppercase font-medium">
-          About · Help · Press · API · Jobs · Privacy · Terms · Locations · Language
-          <br /><br />
-          <span className="font-luxury font-black text-slate-300 text-sm">© 2026 THE NODE</span>
+        <div className="mt-14 px-2">
+          <div className="flex flex-wrap gap-x-4 gap-y-3 text-[9px] text-slate-400/60 tracking-[0.2em] font-medium uppercase">
+            <button className="hover:text-slate-600 transition-colors duration-500">ABOUT</button>
+            <button onClick={() => alert('준비 중입니다.')} className="hover:text-slate-600 transition-colors duration-500">문의하기</button>
+            <button className="hover:text-slate-600 transition-colors duration-500">이용약관</button>
+            <button onClick={() => alert('준비 중입니다.')} className="hover:text-slate-600 transition-colors duration-500">광고/제휴</button>
+            <button className="hover:text-slate-600 transition-colors duration-500">LANGUAGE</button>
+          </div>
+          <div className="mt-8">
+            <span className="font-sans font-medium text-slate-300/70 text-[9px] tracking-[0.15em] uppercase">© 2026 THE NODE. All rights reserved.</span>
+          </div>
         </div>
       </aside>
 
