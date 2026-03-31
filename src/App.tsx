@@ -381,9 +381,11 @@ const PremiumPostCard: React.FC<{
 const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [currentTab, setCurrentTab] = useState('home');
   const [uploadText, setUploadText] = useState('');
+  const [uploadTags, setUploadTags] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [posts, setPosts] = useState(POSTS);
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState<typeof POSTS[0] | null>(null);
@@ -394,11 +396,12 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
     role: 'customer',
     isVerified: false,
     statusMessage: '안녕하세요! 자동차를 사랑하는 유저입니다.',
+    tags: ['#차쟁이', '#드라이브'],
     followers: 120,
     following: 45
   });
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [editProfileData, setEditProfileData] = useState({ avatar: '', statusMessage: '' });
+  const [editProfileData, setEditProfileData] = useState({ avatar: '', statusMessage: '', tags: '' });
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -437,6 +440,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const handleConfirmPost = () => {
+    const parsedTags = uploadTags.split(' ').filter(t => t.trim() !== '').map(t => t.startsWith('#') ? t : `#${t}`);
+    
     const newPost: typeof POSTS[0] = {
       id: Date.now(),
       user: userProfile.user,
@@ -449,7 +454,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
       mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
       likes: 0,
       content: filterPrivateInfo(uploadText), // 필터링 적용
-      tags: [],
+      tags: parsedTags,
       comments: 0,
       time: 'JUST NOW',
       type: 'daily'
@@ -457,6 +462,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
 
     setPosts([newPost, ...posts]);
     setUploadText('');
+    setUploadTags('');
     clearMedia(false); // Do not revoke URL so it stays in the feed
     setShowConfirmModal(false);
     setCurrentTab('home');
@@ -583,6 +589,15 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   }}
                 />
 
+                {/* Tags Input */}
+                <input
+                  type="text"
+                  className="w-full p-4 bg-[#F9F9F9] border-none rounded-2xl text-sm focus:outline-none focus:ring-0 mb-3 text-slate-800 placeholder-slate-400"
+                  placeholder="#태그를 입력해보세요 (예: #차쟁이 #드라이브)"
+                  value={uploadTags}
+                  onChange={(e) => setUploadTags(e.target.value)}
+                />
+
                 {/* Media Preview */}
                 {mediaPreview && (
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden mb-4 bg-slate-100 border border-slate-200">
@@ -678,13 +693,24 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   <img 
                     src={userProfile.avatar} 
                     alt={userProfile.user} 
-                    className="w-24 h-24 rounded-2xl object-cover shadow-md mb-4" 
+                    className="w-24 h-24 rounded-2xl object-cover shadow-md mb-4 cursor-pointer hover:opacity-90 transition" 
+                    onClick={() => setLightboxImage(userProfile.avatar)}
                   />
                   <div className="flex items-center gap-1.5 mb-1">
                     <h2 className="text-2xl font-black text-slate-900">{userProfile.user}</h2>
                     {userProfile.isVerified && <CheckCircle2 size={20} className="text-amber-600" fill="currentColor" stroke="white" />}
                   </div>
-                  <p className="text-sm text-slate-500 font-medium mb-6 text-center max-w-xs">{userProfile.statusMessage}</p>
+                  <p className="text-sm text-slate-500 font-medium mb-3 text-center max-w-xs">{userProfile.statusMessage}</p>
+                  
+                  {userProfile.tags && userProfile.tags.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-xs">
+                      {userProfile.tags.map((tag, idx) => (
+                        <span key={idx} className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   
                   <div className="flex gap-8 mb-6 w-full justify-center">
                     <div className="flex flex-col items-center">
@@ -704,7 +730,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   <div className="flex gap-3 w-full max-w-xs">
                     <button 
                       onClick={() => {
-                        setEditProfileData({ avatar: userProfile.avatar, statusMessage: userProfile.statusMessage });
+                        setEditProfileData({ 
+                          avatar: userProfile.avatar, 
+                          statusMessage: userProfile.statusMessage,
+                          tags: userProfile.tags.join(' ')
+                        });
                         setShowEditProfile(true);
                       }}
                       className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-sm"
@@ -912,7 +942,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 <img 
                   src={selectedUser.avatar} 
                   alt={selectedUser.user} 
-                  className="w-20 h-20 rounded-2xl object-cover shadow-md mb-4" 
+                  className="w-20 h-20 rounded-2xl object-cover shadow-md mb-4 cursor-pointer hover:opacity-90 transition" 
+                  onClick={() => setLightboxImage(selectedUser.avatar)}
                 />
                 <div className="flex items-center gap-1.5 mb-1">
                   <h3 className="text-xl font-black text-slate-900">{selectedUser.user}</h3>
@@ -1025,15 +1056,63 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 />
               </div>
 
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">나를 표현하는 태그</label>
+                <input 
+                  type="text"
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  placeholder="#태그를 입력해보세요 (예: #12년경력 #신뢰)"
+                  value={editProfileData.tags}
+                  onChange={(e) => setEditProfileData({ ...editProfileData, tags: e.target.value })}
+                />
+              </div>
+
               <button
                 onClick={() => {
-                  setUserProfile({ ...userProfile, avatar: editProfileData.avatar, statusMessage: editProfileData.statusMessage });
+                  const parsedTags = editProfileData.tags.split(' ').filter(t => t.trim() !== '').map(t => t.startsWith('#') ? t : `#${t}`);
+                  setUserProfile({ 
+                    ...userProfile, 
+                    avatar: editProfileData.avatar, 
+                    statusMessage: editProfileData.statusMessage,
+                    tags: parsedTags
+                  });
                   setShowEditProfile(false);
                 }}
                 className="w-full py-3.5 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-md"
               >
                 저장
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Photo Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <div 
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md px-4 cursor-zoom-out"
+            onClick={() => setLightboxImage(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-3xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setLightboxImage(null)} 
+                className="absolute -top-12 right-0 text-white/70 hover:text-white transition"
+              >
+                <X size={28} strokeWidth={2} />
+              </button>
+              <img 
+                src={lightboxImage} 
+                alt="Enlarged profile" 
+                className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl" 
+              />
             </motion.div>
           </div>
         )}
