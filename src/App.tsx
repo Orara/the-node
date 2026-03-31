@@ -388,12 +388,17 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState<typeof POSTS[0] | null>(null);
   
-  const currentUser = { 
+  const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
     avatar: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=150&auto=format&fit=crop',
     role: 'customer',
-    isVerified: false 
-  }; // 일반 유저로 가정
+    isVerified: false,
+    statusMessage: '안녕하세요! 자동차를 사랑하는 유저입니다.',
+    followers: 120,
+    following: 45
+  });
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({ avatar: '', statusMessage: '' });
 
   const toggleFollow = (userName: string) => {
     setFollowedUsers(prev => 
@@ -422,7 +427,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const handleUploadClick = () => {
     if (!uploadText.trim() && !mediaFile) return;
     
-    if (checkCommercialKeywords(uploadText, currentUser.isVerified)) {
+    if (checkCommercialKeywords(uploadText, userProfile.isVerified)) {
       setShowConfirmModal(true);
     }
   };
@@ -430,10 +435,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const handleConfirmPost = () => {
     const newPost: typeof POSTS[0] = {
       id: Date.now(),
-      user: currentUser.user,
-      avatar: currentUser.avatar,
-      role: currentUser.role,
-      isVerified: currentUser.isVerified,
+      user: userProfile.user,
+      avatar: userProfile.avatar,
+      role: userProfile.role,
+      isVerified: userProfile.isVerified,
       brand: '',
       location: '',
       image: mediaPreview || '',
@@ -558,14 +563,14 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 
                 {/* User Info */}
                 <div className="flex items-center gap-3 mb-4">
-                  <img src={currentUser.avatar} alt="User" className="w-9 h-9 rounded-full object-cover" />
-                  <span className="text-sm font-bold text-slate-900">{currentUser.user}</span>
+                  <img src={userProfile.avatar} alt="User" className="w-9 h-9 rounded-full object-cover" />
+                  <span className="text-sm font-bold text-slate-900">{userProfile.user}</span>
                 </div>
 
                 {/* Textarea */}
                 <textarea 
                   className="w-full min-h-[120px] p-4 bg-[#F9F9F9] border-none rounded-2xl text-sm focus:outline-none focus:ring-0 resize-none mb-3 text-slate-800 placeholder-slate-400"
-                  placeholder={currentUser.isVerified ? "" : "일반 유저는 상업적 키워드(견적, 판매 등)를 사용할 수 없습니다."}
+                  placeholder={userProfile.isVerified ? "" : "일반 유저는 상업적 키워드(견적, 판매 등)를 사용할 수 없습니다."}
                   value={uploadText}
                   onChange={(e) => {
                     setUploadText(e.target.value);
@@ -624,7 +629,88 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             </motion.div>
           )}
 
-          {currentTab !== 'home' && currentTab !== 'upload' && (
+          {currentTab === 'profile' && (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="w-full pt-2 md:pt-8 px-4 md:px-0"
+            >
+              {/* Profile Header */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
+                <div className="flex flex-col items-center">
+                  <img 
+                    src={userProfile.avatar} 
+                    alt={userProfile.user} 
+                    className="w-24 h-24 rounded-2xl object-cover shadow-md mb-4" 
+                  />
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <h2 className="text-2xl font-black text-slate-900">{userProfile.user}</h2>
+                    {userProfile.isVerified && <CheckCircle2 size={20} className="text-amber-600" fill="currentColor" stroke="white" />}
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium mb-6 text-center max-w-xs">{userProfile.statusMessage}</p>
+                  
+                  <div className="flex gap-8 mb-6 w-full justify-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xl font-bold text-slate-900">{posts.filter(p => p.user === userProfile.user).length}</span>
+                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Posts</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xl font-bold text-slate-900">{userProfile.followers}</span>
+                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Followers</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xl font-bold text-slate-900">{userProfile.following}</span>
+                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Following</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 w-full max-w-xs">
+                    <button 
+                      onClick={() => {
+                        setEditProfileData({ avatar: userProfile.avatar, statusMessage: userProfile.statusMessage });
+                        setShowEditProfile(true);
+                      }}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-sm"
+                    >
+                      프로필 편집
+                    </button>
+                    <button 
+                      onClick={onLogout}
+                      className="py-3 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition shadow-sm"
+                    >
+                      로그아웃
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* My Posts Grid */}
+              <div className="grid grid-cols-3 gap-1 md:gap-2">
+                {posts.filter(p => p.user === userProfile.user).map(post => (
+                  <div key={post.id} className="aspect-square bg-slate-200 relative group cursor-pointer overflow-hidden rounded-lg md:rounded-xl">
+                    {post.mediaType === 'video' ? (
+                      <video src={post.image} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={post.image} alt="post" className="w-full h-full object-cover" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+                      <div className="flex items-center gap-1 font-bold text-sm">
+                        <Heart size={16} fill="currentColor" /> {post.likes}
+                      </div>
+                      <div className="flex items-center gap-1 font-bold text-sm">
+                        <MessageSquare size={16} fill="currentColor" /> {post.comments}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {currentTab !== 'home' && currentTab !== 'upload' && currentTab !== 'profile' && (
             <motion.div
               key="other"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -636,21 +722,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               <div className="w-24 h-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mb-6 text-slate-300">
                 {currentTab === 'search' && <Search size={40} strokeWidth={1} />}
                 {currentTab === 'activity' && <Bell size={40} strokeWidth={1} />}
-                {currentTab === 'profile' && <User size={40} strokeWidth={1} />}
               </div>
               <h2 className="text-2xl font-luxury font-black text-slate-900 mb-3 uppercase tracking-widest">{currentTab}</h2>
               <p className="text-sm text-slate-500 leading-relaxed max-w-[250px]">
                 This premium feature is currently under development. Stay tuned for updates.
               </p>
-              
-              {currentTab === 'profile' && (
-                <button 
-                  onClick={onLogout}
-                  className="mt-8 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition"
-                >
-                  Log Out
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -829,7 +905,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                 </div>
 
-                {selectedUser.user !== currentUser.user && (
+                {selectedUser.user !== userProfile.user && (
                   <div className="flex gap-3 w-full">
                     <button
                       onClick={() => toggleFollow(selectedUser.user)}
@@ -855,6 +931,75 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {showEditProfile && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-slate-100 relative"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black text-slate-900">프로필 편집</h3>
+                <button 
+                  onClick={() => setShowEditProfile(false)} 
+                  className="text-slate-400 hover:text-slate-600 transition"
+                >
+                  <X size={20} strokeWidth={2} />
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative mb-4 group">
+                  <img 
+                    src={editProfileData.avatar} 
+                    alt="Profile Preview" 
+                    className="w-24 h-24 rounded-2xl object-cover shadow-sm" 
+                  />
+                  <label className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <Camera size={24} className="text-white" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setEditProfileData({ ...editProfileData, avatar: URL.createObjectURL(file) });
+                        }
+                      }} 
+                    />
+                  </label>
+                </div>
+                <p className="text-xs font-bold text-amber-600 cursor-pointer hover:text-amber-700">사진 변경</p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">상태 메시지</label>
+                <textarea 
+                  className="w-full min-h-[100px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all resize-none"
+                  placeholder="나를 표현하는 한 줄 소개를 적어주세요."
+                  value={editProfileData.statusMessage}
+                  onChange={(e) => setEditProfileData({ ...editProfileData, statusMessage: e.target.value })}
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setUserProfile({ ...userProfile, avatar: editProfileData.avatar, statusMessage: editProfileData.statusMessage });
+                  setShowEditProfile(false);
+                }}
+                className="w-full py-3.5 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-md"
+              >
+                저장
+              </button>
             </motion.div>
           </div>
         )}
