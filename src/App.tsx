@@ -238,23 +238,58 @@ const LiveConnectTray = () => (
   </div>
 );
 
-const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
+const PremiumPostCard = ({ 
+  post, 
+  isFollowing, 
+  onToggleFollow, 
+  onUserClick 
+}: { 
+  post: typeof POSTS[0], 
+  isFollowing?: boolean, 
+  onToggleFollow?: () => void, 
+  onUserClick?: () => void 
+}) => {
   const [liked, setLiked] = useState(false);
 
   return (
     <article className="bg-white mx-4 md:mx-0 mb-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden">
       {/* Post Header */}
       <div className="flex items-center justify-between p-5">
-        <div className="flex items-center gap-4 cursor-pointer">
-          <img src={post.avatar} alt={post.user} className="w-11 h-11 rounded-xl object-cover shadow-sm" />
+        <div className="flex items-center gap-4">
+          <img 
+            src={post.avatar} 
+            alt={post.user} 
+            onClick={onUserClick}
+            className="w-11 h-11 rounded-xl object-cover shadow-sm cursor-pointer hover:opacity-80 transition" 
+          />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm text-slate-900">{post.user}</span>
+              <span 
+                onClick={onUserClick}
+                className="font-bold text-sm text-slate-900 cursor-pointer hover:underline"
+              >
+                {post.user}
+              </span>
               {post.role === 'dealer' && <CheckCircle2 size={14} className="text-amber-600" fill="currentColor" stroke="white" />}
               {post.isVerified && (
                 <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full ml-1 border border-amber-200">
                   THE NODE Verified
                 </span>
+              )}
+              {/* Follow Button */}
+              {post.user !== '현재 유저' && onToggleFollow && (
+                <button
+                  onClick={onToggleFollow}
+                  className={`ml-2 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all ${
+                    isFollowing
+                      ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      : post.isVerified
+                        ? 'bg-amber-600 text-white shadow-sm hover:bg-amber-700'
+                        : 'bg-slate-900 text-white shadow-sm hover:bg-black'
+                  }`}
+                >
+                  {isFollowing ? '팔로잉' : '팔로우'}
+                </button>
               )}
             </div>
             {post.location && <span className="text-[11px] text-slate-400 font-medium tracking-wide">{post.location}</span>}
@@ -266,7 +301,7 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
       {/* Post Image/Video */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 group">
         {post.mediaType === 'video' ? (
-          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+          <video src={post.image} controls autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
         ) : (
           <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
         )}
@@ -348,7 +383,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [uploadText, setUploadText] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [posts, setPosts] = useState(POSTS);
+  const [followedUsers, setFollowedUsers] = useState<string[]>([]);
+  const [selectedUser, setSelectedUser] = useState<typeof POSTS[0] | null>(null);
   
   const currentUser = { 
     user: '현재 유저',
@@ -356,6 +394,12 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
     role: 'customer',
     isVerified: false 
   }; // 일반 유저로 가정
+
+  const toggleFollow = (userName: string) => {
+    setFollowedUsers(prev => 
+      prev.includes(userName) ? prev.filter(name => name !== userName) : [...prev, userName]
+    );
+  };
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -374,34 +418,38 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
     }
   };
 
-  const handleUpload = () => {
+  const handleUploadClick = () => {
     if (!uploadText.trim() && !mediaFile) return;
     
     if (checkCommercialKeywords(uploadText, currentUser.isVerified)) {
-      const newPost = {
-        id: Date.now(),
-        user: currentUser.user,
-        avatar: currentUser.avatar,
-        role: currentUser.role,
-        isVerified: currentUser.isVerified,
-        brand: '',
-        location: '',
-        image: mediaPreview || '',
-        mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
-        likes: 0,
-        content: filterPrivateInfo(uploadText), // 필터링 적용
-        tags: [],
-        comments: 0,
-        time: 'JUST NOW',
-        type: 'daily'
-      };
-
-      setPosts([newPost, ...posts]);
-      alert('게시글이 성공적으로 등록되었습니다.');
-      setUploadText('');
-      clearMedia();
-      setCurrentTab('home');
+      setShowConfirmModal(true);
     }
+  };
+
+  const handleConfirmPost = () => {
+    const newPost = {
+      id: Date.now(),
+      user: currentUser.user,
+      avatar: currentUser.avatar,
+      role: currentUser.role,
+      isVerified: currentUser.isVerified,
+      brand: '',
+      location: '',
+      image: mediaPreview || '',
+      mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
+      likes: 0,
+      content: filterPrivateInfo(uploadText), // 필터링 적용
+      tags: [],
+      comments: 0,
+      time: 'JUST NOW',
+      type: 'daily'
+    };
+
+    setPosts([newPost, ...posts]);
+    setUploadText('');
+    clearMedia();
+    setShowConfirmModal(false);
+    setCurrentTab('home');
   };
 
   // Cleanup object URLs to avoid memory leaks
@@ -481,7 +529,13 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               <LiveConnectTray />
               <div className="flex flex-col mt-4">
                 {posts.map(post => (
-                  <PremiumPostCard key={post.id} post={post} />
+                  <PremiumPostCard 
+                    key={post.id} 
+                    post={post} 
+                    isFollowing={followedUsers.includes(post.user)}
+                    onToggleFollow={() => toggleFollow(post.user)}
+                    onUserClick={() => setSelectedUser(post)}
+                  />
                 ))}
               </div>
             </motion.div>
@@ -558,7 +612,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                   
                   <button 
-                    onClick={handleUpload}
+                    onClick={handleUploadClick}
                     disabled={!uploadText.trim() && !mediaFile}
                     className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
                       (!uploadText.trim() && !mediaFile) 
@@ -680,6 +734,134 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
           <img src={STORIES[0].avatar} className="w-6 h-6 rounded-md object-cover" alt="profile" />
         </button>
       </nav>
+
+      {/* Custom Confirm Modal */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-slate-100"
+            >
+              <h3 className="text-lg font-black text-slate-900 mb-2 text-center">이대로 게시하시겠습니까?</h3>
+              <p className="text-xs text-slate-500 text-center mb-5">작성하신 내용과 미디어를 확인해주세요.</p>
+
+              <div className="bg-slate-50 rounded-2xl p-4 mb-6 max-h-[40vh] overflow-y-auto">
+                {mediaPreview && (
+                  <div className="w-full h-32 rounded-xl overflow-hidden mb-3 bg-slate-200">
+                    {mediaFile?.type.startsWith('video/') ? (
+                      <video src={mediaPreview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                )}
+                {uploadText && (
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                    {filterPrivateInfo(uploadText)}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleConfirmPost}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-md"
+                >
+                  확인
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* User Profile Modal */}
+      <AnimatePresence>
+        {selectedUser && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-slate-100 relative overflow-hidden"
+            >
+              <button 
+                onClick={() => setSelectedUser(null)} 
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition z-10"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+
+              <div className="flex flex-col items-center mt-4 mb-6">
+                <img 
+                  src={selectedUser.avatar} 
+                  alt={selectedUser.user} 
+                  className="w-20 h-20 rounded-2xl object-cover shadow-md mb-4" 
+                />
+                <div className="flex items-center gap-1.5 mb-1">
+                  <h3 className="text-xl font-black text-slate-900">{selectedUser.user}</h3>
+                  {selectedUser.role === 'dealer' && <CheckCircle2 size={18} className="text-amber-600" fill="currentColor" stroke="white" />}
+                </div>
+                {selectedUser.isVerified && (
+                  <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 mb-3">
+                    THE NODE Verified
+                  </span>
+                )}
+
+                <div className="flex gap-6 mt-2 mb-6">
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-bold text-slate-900">
+                      {posts.filter(p => p.user === selectedUser.user).length}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Posts</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-bold text-slate-900">
+                      {followedUsers.includes(selectedUser.user) ? '12.5K' : '12.4K'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Followers</span>
+                  </div>
+                </div>
+
+                {selectedUser.user !== currentUser.user && (
+                  <div className="flex gap-3 w-full">
+                    <button
+                      onClick={() => toggleFollow(selectedUser.user)}
+                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition shadow-sm ${
+                        followedUsers.includes(selectedUser.user)
+                          ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          : selectedUser.isVerified
+                            ? 'bg-amber-600 text-white hover:bg-amber-700'
+                            : 'bg-slate-900 text-white hover:bg-black'
+                      }`}
+                    >
+                      {followedUsers.includes(selectedUser.user) ? '팔로잉' : '팔로우'}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        alert('준비 중입니다.');
+                        setSelectedUser(null);
+                      }}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-900 border border-slate-200 hover:bg-slate-100 transition shadow-sm"
+                    >
+                      게시물 보기
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
