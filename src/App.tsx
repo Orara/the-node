@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Home, Search, Plus, Bell, User, 
@@ -400,6 +400,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({ avatar: '', statusMessage: '' });
 
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   const toggleFollow = (userName: string) => {
     setFollowedUsers(prev => 
       prev.includes(userName) ? prev.filter(name => name !== userName) : [...prev, userName]
@@ -599,18 +603,48 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 {/* Footer Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-4 text-slate-400">
-                    <label className="cursor-pointer hover:text-amber-600 transition">
+                    <button 
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
+                    >
                       <Camera size={22} strokeWidth={1.5} />
-                      <input type="file" accept="image/*,video/*" capture="environment" className="hidden" onChange={handleMediaChange} />
-                    </label>
-                    <label className="cursor-pointer hover:text-amber-600 transition">
+                    </button>
+                    <input 
+                      ref={cameraInputRef}
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      className="hidden" 
+                      onChange={handleMediaChange} 
+                    />
+                    
+                    <button 
+                      onClick={() => photoInputRef.current?.click()}
+                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
+                    >
                       <ImageIcon size={22} strokeWidth={1.5} />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaChange} />
-                    </label>
-                    <label className="cursor-pointer hover:text-amber-600 transition">
+                    </button>
+                    <input 
+                      ref={photoInputRef}
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleMediaChange} 
+                    />
+
+                    <button 
+                      onClick={() => videoInputRef.current?.click()}
+                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
+                    >
                       <Video size={22} strokeWidth={1.5} />
-                      <input type="file" accept="video/*" className="hidden" onChange={handleMediaChange} />
-                    </label>
+                    </button>
+                    <input 
+                      ref={videoInputRef}
+                      type="file" 
+                      accept="video/*" 
+                      className="hidden" 
+                      onChange={handleMediaChange} 
+                    />
                   </div>
                   
                   <button 
