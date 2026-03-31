@@ -7,6 +7,29 @@ import {
   Mail, Lock, ArrowRight, Github
 } from 'lucide-react';
 
+// --- Business Logic ---
+const filterPrivateInfo = (text: string) => {
+  if (!text) return text;
+  // Phone numbers: 010-1234-5678, 01012345678, 010 1234 5678
+  let filtered = text.replace(/(01[016789])[-.\s]?(\d{3,4})[-.\s]?(\d{4})/g, '[비공개 처리됨]');
+  // URLs
+  filtered = filtered.replace(/(https?:\/\/[^\s]+)|(www\.[^\s]+)/g, '[비공개 처리됨]');
+  // Kakao ID
+  filtered = filtered.replace(/(카톡|kakao|카카오톡)\s*(아이디|id)?\s*[:\-]?\s*([a-zA-Z0-9_]+)/gi, '[비공개 처리됨]');
+  return filtered;
+};
+
+const checkCommercialKeywords = (text: string, isVerified: boolean) => {
+  if (isVerified) return true; // 인증 딜러는 제한 없음
+  const forbiddenWords = ['견적', '금액', '판매', '얼마', '상담'];
+  const hasForbidden = forbiddenWords.some(word => text.includes(word));
+  if (hasForbidden) {
+    alert('인증 딜러 전용 기능입니다. 상업적 키워드(견적, 금액, 판매, 얼마, 상담)는 사용할 수 없습니다.');
+    return false;
+  }
+  return true;
+};
+
 // --- Mock Data ---
 const STORIES = [
   { id: 1, user: '내 스토리', avatar: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=150&auto=format&fit=crop', isAdd: true },
@@ -22,11 +45,12 @@ const POSTS = [
     user: '김벤츠 딜러',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=150&auto=format&fit=crop',
     role: 'dealer',
+    isVerified: true,
     brand: 'Mercedes-Benz',
     location: '한성자동차 강남전시장',
     image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop',
     likes: 124,
-    content: '오늘 S클래스 500 4MATIC 롱바디 출고 완료했습니다. 대기 기간 없이 즉시 출고 가능한 재고 2대 확보 중입니다. 품격 있는 드라이빙을 원하신다면 언제든 문의 바랍니다.',
+    content: '오늘 S클래스 500 4MATIC 롱바디 출고 완료했습니다. 대기 기간 없이 즉시 출고 가능한 재고 2대 확보 중입니다. 연락처 010-1234-5678 또는 카톡 kakao id: benz123 으로 문의 바랍니다.',
     tags: ['#MercedesBenz', '#SClass', '#즉시출고'],
     comments: 12,
     time: '2 HOURS AGO',
@@ -37,11 +61,12 @@ const POSTS = [
     user: '이비엠 딜러',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=150&auto=format&fit=crop',
     role: 'dealer',
+    isVerified: true,
     brand: 'BMW',
     location: '코오롱모터스 서초',
     image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
     likes: 89,
-    content: '5시리즈 하이브리드 모델, 이번 달 한정 프로모션 진행합니다. 법인 플릿 적용 시 추가 혜택이 제공됩니다. 가장 합리적인 견적을 약속드립니다.',
+    content: '5시리즈 하이브리드 모델, 이번 달 한정 프로모션 진행합니다. 법인 플릿 적용 시 추가 혜택이 제공됩니다. 가장 합리적인 견적을 약속드립니다. https://bmw-promo.com',
     tags: ['#BMW', '#5Series', '#법인리스'],
     comments: 5,
     time: '5 HOURS AGO',
@@ -52,10 +77,11 @@ const POSTS = [
     user: '차량찾는고객',
     avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=150&auto=format&fit=crop',
     role: 'customer',
+    isVerified: false,
     location: '서울 강남구',
     image: 'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
     likes: 12,
-    content: '포르쉐 카이엔 쿠페 플래티넘 에디션 화이트/보르도레드 실내 재고 구합니다. 리스 승계도 고려하고 있습니다. 조건 맞는 딜러님들의 제안을 기다립니다.',
+    content: '포르쉐 카이엔 쿠페 플래티넘 에디션 화이트/보르도레드 실내 재고 구합니다. 리스 승계도 고려하고 있습니다. 010-9876-5432 로 연락주세요.',
     tags: ['#Porsche', '#CayenneCoupe', '#재고문의'],
     comments: 8,
     time: '8 HOURS AGO',
@@ -222,6 +248,11 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm text-slate-900">{post.user}</span>
               {post.role === 'dealer' && <CheckCircle2 size={14} className="text-amber-600" fill="currentColor" stroke="white" />}
+              {post.isVerified && (
+                <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full ml-1 border border-amber-200">
+                  THE NODE Verified
+                </span>
+              )}
             </div>
             {post.location && <span className="text-[11px] text-slate-400 font-medium tracking-wide">{post.location}</span>}
           </div>
@@ -265,7 +296,7 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
         
         <p className="text-sm text-slate-700 leading-relaxed mb-3">
           <span className="font-bold text-slate-900 mr-2">{post.user}</span>
-          {post.content}
+          {filterPrivateInfo(post.content)}
         </p>
         
         <div className="flex flex-wrap gap-2 mb-4">
@@ -283,13 +314,18 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
 
         {/* Action Button */}
         <div className="mt-5">
-          {post.role === 'dealer' ? (
-            <button className="w-full bg-slate-900 hover:bg-black text-white font-bold text-sm py-3.5 rounded-xl transition shadow-md flex items-center justify-center gap-2">
-              <FileText size={16} /> Request Quotation
-            </button>
+          {post.isVerified ? (
+            <div className="flex gap-3">
+              <button className="flex-1 bg-slate-900 hover:bg-black text-white font-bold text-sm py-3.5 rounded-xl transition shadow-md flex items-center justify-center gap-2">
+                <FileText size={16} /> 공식 견적 요청
+              </button>
+              <button className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-sm py-3.5 rounded-xl transition shadow-sm flex items-center justify-center gap-2 border border-amber-200">
+                <MessageSquare size={16} /> 실시간 상담
+              </button>
+            </div>
           ) : (
-            <button className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-sm py-3.5 rounded-xl transition flex items-center justify-center gap-2">
-              <Send size={16} /> Send Proposal
+            <button className="w-full bg-slate-100 text-slate-400 font-bold text-sm py-3.5 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+              <Lock size={16} /> 일반 유저 게시글
             </button>
           )}
         </div>
@@ -302,6 +338,17 @@ const PremiumPostCard = ({ post }: { post: typeof POSTS[0] }) => {
 
 const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [currentTab, setCurrentTab] = useState('home');
+  const [uploadText, setUploadText] = useState('');
+  const currentUser = { isVerified: false }; // 일반 유저로 가정
+
+  const handleUpload = () => {
+    if (!uploadText.trim()) return;
+    if (checkCommercialKeywords(uploadText, currentUser.isVerified)) {
+      alert('게시글이 성공적으로 등록되었습니다.');
+      setUploadText('');
+      setCurrentTab('home');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center font-sans selection:bg-amber-100 selection:text-amber-900">
@@ -379,7 +426,35 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             </motion.div>
           )}
 
-          {currentTab !== 'home' && (
+          {currentTab === 'upload' && (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center h-[70vh] px-6 w-full max-w-md mx-auto"
+            >
+              <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                <h2 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-widest text-center">Create Post</h2>
+                <p className="text-xs text-slate-500 mb-4 text-center">일반 유저는 상업적 키워드(견적, 판매 등)를 사용할 수 없습니다.</p>
+                <textarea 
+                  className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none mb-4"
+                  placeholder="무슨 생각을 하고 계신가요?"
+                  value={uploadText}
+                  onChange={(e) => setUploadText(e.target.value)}
+                />
+                <button 
+                  onClick={handleUpload}
+                  className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl transition shadow-md"
+                >
+                  게시하기
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {currentTab !== 'home' && currentTab !== 'upload' && (
             <motion.div
               key="other"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -390,7 +465,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             >
               <div className="w-24 h-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mb-6 text-slate-300">
                 {currentTab === 'search' && <Search size={40} strokeWidth={1} />}
-                {currentTab === 'upload' && <Plus size={40} strokeWidth={1} />}
                 {currentTab === 'activity' && <Bell size={40} strokeWidth={1} />}
                 {currentTab === 'profile' && <User size={40} strokeWidth={1} />}
               </div>
