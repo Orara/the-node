@@ -238,16 +238,16 @@ const LiveConnectTray = () => (
   </div>
 );
 
-const PremiumPostCard = ({ 
-  post, 
-  isFollowing, 
-  onToggleFollow, 
-  onUserClick 
-}: { 
+const PremiumPostCard: React.FC<{ 
   post: typeof POSTS[0], 
   isFollowing?: boolean, 
   onToggleFollow?: () => void, 
   onUserClick?: () => void 
+}> = ({ 
+  post, 
+  isFollowing, 
+  onToggleFollow, 
+  onUserClick 
 }) => {
   const [liked, setLiked] = useState(false);
 
@@ -301,7 +301,7 @@ const PremiumPostCard = ({
       {/* Post Image/Video */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 group">
         {post.mediaType === 'video' ? (
-          <video src={post.image} controls autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
         ) : (
           <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
         )}
@@ -410,10 +410,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
     }
   };
 
-  const clearMedia = () => {
+  const clearMedia = (revoke: boolean | React.MouseEvent = true) => {
+    const shouldRevoke = typeof revoke === 'boolean' ? revoke : true;
     setMediaFile(null);
     if (mediaPreview) {
-      URL.revokeObjectURL(mediaPreview);
+      if (shouldRevoke) URL.revokeObjectURL(mediaPreview);
       setMediaPreview(null);
     }
   };
@@ -427,7 +428,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const handleConfirmPost = () => {
-    const newPost = {
+    const newPost: typeof POSTS[0] = {
       id: Date.now(),
       user: currentUser.user,
       avatar: currentUser.avatar,
@@ -447,17 +448,13 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
 
     setPosts([newPost, ...posts]);
     setUploadText('');
-    clearMedia();
+    clearMedia(false); // Do not revoke URL so it stays in the feed
     setShowConfirmModal(false);
     setCurrentTab('home');
   };
 
-  // Cleanup object URLs to avoid memory leaks
-  useEffect(() => {
-    return () => {
-      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
-    };
-  }, [mediaPreview]);
+  // Removed useEffect that revokes object URL on mediaPreview change
+  // to prevent breaking the feed images/videos after posting.
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center font-sans selection:bg-amber-100 selection:text-amber-900">
@@ -599,7 +596,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   <div className="flex items-center gap-4 text-slate-400">
                     <label className="cursor-pointer hover:text-amber-600 transition">
                       <Camera size={22} strokeWidth={1.5} />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaChange} />
+                      <input type="file" accept="image/*,video/*" capture="environment" className="hidden" onChange={handleMediaChange} />
                     </label>
                     <label className="cursor-pointer hover:text-amber-600 transition">
                       <ImageIcon size={22} strokeWidth={1.5} />
