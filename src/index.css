@@ -4,4 +4,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-luxury: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --color-gold: #D4AF37;
+  --color-gold-light: #F9DF9F;
+  --color-gold-dark: #B5952F;
 }

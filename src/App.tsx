@@ -102,7 +102,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
         >
           <div className="mb-12 text-center lg:text-left">
             <h1 className="text-3xl font-black tracking-tighter text-slate-900 uppercase mb-3">
-              The Smart Auto
+              THE NODE
             </h1>
             <p className="text-slate-500 font-medium">Welcome back. Please enter your details.</p>
           </div>
@@ -309,7 +309,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
       {/* Desktop Sidebar (Hidden on Mobile) */}
       <nav className="hidden md:flex flex-col w-[280px] fixed left-0 top-0 h-screen bg-white border-r border-slate-100 p-8 z-50">
         <div className="font-luxury text-2xl font-black tracking-tighter text-slate-900 uppercase mb-16 cursor-pointer">
-          The Smart Auto
+          THE NODE
         </div>
         
         <div className="flex flex-col gap-4 flex-1">
@@ -351,7 +351,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         {/* Mobile Header (Hidden on Desktop) */}
         <header className="md:hidden sticky top-0 z-40 bg-slate-50/80 backdrop-blur-xl px-6 py-4 flex justify-between items-center">
           <div className="font-luxury text-xl font-black tracking-tighter text-slate-900 uppercase">
-            The Smart Auto
+            THE NODE
           </div>
           <div className="flex items-center gap-5">
             <button className="text-slate-800 hover:text-amber-600 transition"><Bell size={22} strokeWidth={1.5} /></button>
@@ -419,7 +419,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             <div className="flex items-center gap-4">
               <img src={STORIES[0].avatar} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt="My Profile" />
               <div>
-                <p className="font-bold text-sm text-slate-900">my_smart_auto</p>
+                <p className="font-bold text-sm text-slate-900">the_node</p>
                 <p className="text-slate-400 text-xs font-medium mt-0.5">Premium Member</p>
               </div>
             </div>
@@ -453,7 +453,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         <div className="mt-12 px-2 text-[10px] text-slate-400 leading-loose tracking-widest uppercase font-medium">
           About · Help · Press · API · Jobs · Privacy · Terms · Locations · Language
           <br /><br />
-          <span className="font-luxury font-black text-slate-300 text-sm">© 2026 THE SMART AUTO</span>
+          <span className="font-luxury font-black text-slate-300 text-sm">© 2026 THE NODE</span>
         </div>
       </aside>
 
