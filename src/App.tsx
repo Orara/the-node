@@ -214,7 +214,6 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
                     type="email" 
                     className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all shadow-sm"
                     placeholder="Enter your email"
-                    required
                   />
                 </div>
               </div>
@@ -232,7 +231,6 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
                     type="password" 
                     className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all shadow-sm"
                     placeholder="••••••••"
-                    required
                   />
                 </div>
               </div>
@@ -341,39 +339,19 @@ const PremiumPostCard: React.FC<{
             className="w-11 h-11 rounded-xl object-cover shadow-sm cursor-pointer hover:opacity-80 transition" 
           />
           <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <span 
                 onClick={onUserClick}
                 className="font-bold text-sm text-slate-900 cursor-pointer hover:underline"
               >
                 {post.user}
               </span>
-              {post.role === 'dealer' && <CheckCircle2 size={14} className="text-amber-600" fill="currentColor" stroke="white" />}
-              {post.isVerified && (
-                <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full ml-1 border border-amber-200">
-                  THE NODE Verified
-                </span>
-              )}
-              {/* Follow Button */}
-              {post.user !== '현재 유저' && onToggleFollow && (
-                <button
-                  onClick={onToggleFollow}
-                  className={`ml-2 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all ${
-                    isFollowing
-                      ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                      : post.isVerified
-                        ? 'bg-amber-600 text-white shadow-sm hover:bg-amber-700'
-                        : 'bg-slate-900 text-white shadow-sm hover:bg-black'
-                  }`}
-                >
-                  {isFollowing ? '팔로잉' : '팔로우'}
-                </button>
-              )}
+              {post.role === 'dealer' && <CheckCircle2 size={12} className="text-amber-600" fill="currentColor" stroke="white" />}
+              {post.isVerified && <CheckCircle2 size={12} className="text-slate-900" fill="currentColor" stroke="white" />}
             </div>
-            {post.location && <span className="text-[11px] text-slate-400 font-medium tracking-wide">{post.location}</span>}
+            {post.location && <span className="text-[10px] text-slate-300 font-medium tracking-tight">{post.location}</span>}
           </div>
         </div>
-        <button className="text-slate-400 hover:text-slate-900 transition"><MoreHorizontal size={20} /></button>
       </div>
 
       {/* Post Image/Video */}
@@ -1039,7 +1017,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       ref={cameraInputRef}
                       type="file" 
                       accept="image/*" 
-                      capture="environment" 
                       className="hidden" 
                       onChange={handleMediaChange} 
                     />
