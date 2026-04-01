@@ -7,6 +7,37 @@ import {
   Mail, Lock, ArrowRight, Github, Image as ImageIcon, X, Camera, Video
 } from 'lucide-react';
 
+// --- Types ---
+interface Comment {
+  id: number;
+  user: string;
+  avatar: string;
+  text: string;
+  time: string;
+  likes: number;
+  isLiked?: boolean;
+  replies: Comment[];
+}
+
+interface Post {
+  id: number;
+  user: string;
+  avatar: string;
+  role: string;
+  isVerified: boolean;
+  brand?: string;
+  location: string;
+  image: string;
+  mediaType: string;
+  likes: number;
+  isLiked?: boolean;
+  content: string;
+  tags: string[];
+  comments: Comment[];
+  time: string;
+  type: string;
+}
+
 // --- Business Logic ---
 const filterPrivateInfo = (text: string) => {
   if (!text) return text;
@@ -39,7 +70,7 @@ const STORIES = [
   { id: 5, user: '최고객', avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=150&auto=format&fit=crop', hasStory: false },
 ];
 
-const POSTS = [
+const POSTS: Post[] = [
   {
     id: 1,
     user: '김벤츠 딜러',
@@ -51,9 +82,42 @@ const POSTS = [
     image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop',
     mediaType: 'image',
     likes: 124,
+    isLiked: false,
     content: '오늘 S클래스 500 4MATIC 롱바디 출고 완료했습니다. 대기 기간 없이 즉시 출고 가능한 재고 2대 확보 중입니다. 연락처 010-1234-5678 또는 카톡 kakao id: benz123 으로 문의 바랍니다.',
     tags: ['#MercedesBenz', '#SClass', '#즉시출고'],
-    comments: 12,
+    comments: [
+      {
+        id: 101,
+        user: '이비엠 딜러',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=150&auto=format&fit=crop',
+        text: 'S클래스 정말 멋지네요! 출고 축하드립니다.',
+        time: '1 HOUR AGO',
+        likes: 5,
+        isLiked: false,
+        replies: []
+      },
+      {
+        id: 102,
+        user: '박포르쉐',
+        avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=150&auto=format&fit=crop',
+        text: '와... S500 롱바디... 제 드림카입니다. 부럽네요!',
+        time: '30 MINS AGO',
+        likes: 2,
+        isLiked: false,
+        replies: [
+          {
+            id: 1021,
+            user: '김벤츠 딜러',
+            avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=150&auto=format&fit=crop',
+            text: '감사합니다 박포르쉐님! 언제든 시승 문의 주세요.',
+            time: '10 MINS AGO',
+            likes: 1,
+            isLiked: false,
+            replies: []
+          }
+        ]
+      }
+    ],
     time: '2 HOURS AGO',
     type: 'daily'
   },
@@ -68,9 +132,10 @@ const POSTS = [
     image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
     mediaType: 'image',
     likes: 89,
+    isLiked: false,
     content: '5시리즈 하이브리드 모델, 이번 달 한정 프로모션 진행합니다. 법인 플릿 적용 시 추가 혜택이 제공됩니다. 가장 합리적인 견적을 약속드립니다. https://bmw-promo.com',
     tags: ['#BMW', '#5Series', '#법인리스'],
-    comments: 5,
+    comments: [],
     time: '5 HOURS AGO',
     type: 'promotion'
   },
@@ -84,9 +149,10 @@ const POSTS = [
     image: 'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
     mediaType: 'image',
     likes: 12,
+    isLiked: false,
     content: '포르쉐 카이엔 쿠페 플래티넘 에디션 화이트/보르도레드 실내 재고 구합니다. 리스 승계도 고려하고 있습니다. 010-9876-5432 로 연락주세요.',
     tags: ['#Porsche', '#CayenneCoupe', '#재고문의'],
-    comments: 8,
+    comments: [],
     time: '8 HOURS AGO',
     type: 'inquiry'
   }
@@ -239,17 +305,25 @@ const LiveConnectTray = () => (
 );
 
 const PremiumPostCard: React.FC<{ 
-  post: typeof POSTS[0], 
+  post: Post, 
   isFollowing?: boolean, 
   onToggleFollow?: () => void, 
-  onUserClick?: () => void 
+  onUserClick?: () => void,
+  onCommentClick?: () => void,
+  onLike?: () => void
 }> = ({ 
   post, 
   isFollowing, 
   onToggleFollow, 
-  onUserClick 
+  onUserClick,
+  onCommentClick,
+  onLike
 }) => {
-  const [liked, setLiked] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const content = filterPrivateInfo(post.content);
+  const shouldTruncate = content.length > 40; // Approximate one line
+  const displayContent = isExpanded ? content : (shouldTruncate ? content.slice(0, 40) + '...' : content);
 
   return (
     <article className="bg-white mx-4 md:mx-0 mb-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden">
@@ -325,21 +399,29 @@ const PremiumPostCard: React.FC<{
       <div className="p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-5">
-            <button onClick={() => setLiked(!liked)} className={`transition transform active:scale-90 ${liked ? 'text-rose-500' : 'text-slate-800 hover:text-slate-500'}`}>
-              <Heart size={24} strokeWidth={1.5} fill={liked ? "currentColor" : "none"} />
+            <button onClick={onLike} className={`transition transform active:scale-90 ${post.isLiked ? 'text-rose-500' : 'text-slate-800 hover:text-slate-500'}`}>
+              <Heart size={24} strokeWidth={1.5} fill={post.isLiked ? "currentColor" : "none"} />
             </button>
-            <button className="text-slate-800 hover:text-slate-500 transition"><MessageSquare size={24} strokeWidth={1.5} /></button>
+            <button onClick={onCommentClick} className="text-slate-800 hover:text-slate-500 transition"><MessageSquare size={24} strokeWidth={1.5} /></button>
             <button className="text-slate-800 hover:text-slate-500 transition"><Send size={24} strokeWidth={1.5} /></button>
           </div>
           <button className="text-slate-800 hover:text-slate-500 transition"><Bookmark size={24} strokeWidth={1.5} /></button>
         </div>
 
-        <p className="font-bold text-sm text-slate-900 mb-3">{post.likes + (liked ? 1 : 0)} Likes</p>
+        <p className="font-bold text-sm text-slate-900 mb-3">{post.likes} Likes</p>
         
-        <p className="text-sm text-slate-700 leading-relaxed mb-3">
+        <div className="text-sm text-slate-700 leading-relaxed mb-3">
           <span className="font-bold text-slate-900 mr-2">{post.user}</span>
-          {filterPrivateInfo(post.content)}
-        </p>
+          {displayContent}
+          {shouldTruncate && (
+            <button 
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="ml-1 text-slate-400 font-bold hover:text-slate-600 transition"
+            >
+              {isExpanded ? '접기' : '...더 보기'}
+            </button>
+          )}
+        </div>
         
         <div className="flex flex-wrap gap-2 mb-4">
           {post.tags?.map(tag => (
@@ -349,8 +431,11 @@ const PremiumPostCard: React.FC<{
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
           <p className="text-[10px] text-slate-400 font-bold tracking-widest">{post.time}</p>
-          <button className="text-xs font-bold text-slate-400 hover:text-slate-900 transition flex items-center gap-1">
-            View {post.comments} Comments <ChevronRight size={14} />
+          <button 
+            onClick={onCommentClick}
+            className="text-xs font-bold text-slate-400 hover:text-slate-900 transition flex items-center gap-1"
+          >
+            View {post.comments.length} Comments <ChevronRight size={14} />
           </button>
         </div>
 
@@ -376,6 +461,207 @@ const PremiumPostCard: React.FC<{
   );
 };
 
+const CommentItem: React.FC<{ 
+  comment: Comment; 
+  onReply: (id: number, text: string) => void;
+  onLike: (id: number) => void;
+  userProfile: any;
+  depth?: number;
+}> = ({ comment, onReply, onLike, userProfile, depth = 0 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  
+  const shouldTruncate = comment.text.length > 60;
+  const displayText = isExpanded ? comment.text : (shouldTruncate ? comment.text.slice(0, 60) + '...' : comment.text);
+
+  const handleSubmitReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+    onReply(comment.id, replyText);
+    setReplyText('');
+    setShowReplyInput(false);
+  };
+
+  return (
+    <div className={`flex gap-3`} style={{ marginLeft: depth > 0 ? `${Math.min(depth * 20, 100)}px` : '0px' }}>
+      <img src={comment.avatar} className="w-8 h-8 rounded-lg object-cover shadow-sm flex-shrink-0" alt={comment.user} />
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-bold text-slate-900">{comment.user}</span>
+          <span className="text-[10px] text-slate-400 font-medium">{comment.time}</span>
+        </div>
+        <div className="text-xs text-slate-700 leading-relaxed">
+          {displayText}
+          {shouldTruncate && (
+            <button 
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="ml-1 text-slate-400 font-bold hover:text-slate-600 transition"
+            >
+              {isExpanded ? '접기' : '더 보기'}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-4 mt-2">
+          <button onClick={() => onLike(comment.id)} className={`flex items-center gap-1 text-[10px] font-bold transition ${comment.isLiked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}>
+            <Heart size={12} className={comment.isLiked ? 'fill-rose-500 text-rose-500' : ''} />
+            {comment.likes > 0 && comment.likes} 좋아요
+          </button>
+          <button onClick={() => setShowReplyInput(!showReplyInput)} className="text-[10px] font-bold text-slate-400 hover:text-slate-900 transition">
+            답글 달기
+          </button>
+        </div>
+
+        {/* Inline Reply Input */}
+        <AnimatePresence>
+          {showReplyInput && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden"
+            >
+              <form onSubmit={handleSubmitReply} className="flex items-center gap-2">
+                <img src={userProfile.avatar} className="w-6 h-6 rounded-lg object-cover" alt="me" />
+                <input 
+                  type="text" 
+                  autoFocus
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="답글을 입력하세요..."
+                  className="flex-1 bg-slate-50 border-none rounded-xl py-2 px-3 text-[11px] focus:ring-1 focus:ring-amber-500/20 transition"
+                />
+                <button 
+                  type="submit"
+                  disabled={!replyText.trim()}
+                  className="p-1.5 text-amber-600 disabled:text-slate-300 transition"
+                >
+                  <Send size={14} />
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Nested Replies */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-4 space-y-4">
+            {comment.replies.map(reply => (
+              <CommentItem 
+                key={reply.id} 
+                comment={reply} 
+                onReply={onReply} 
+                onLike={onLike} 
+                userProfile={userProfile}
+                depth={depth + 1} 
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CommentSheet: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  post: Post | null;
+  userProfile: any;
+  onAddComment: (postId: number, text: string, parentId?: number) => void;
+  onLikeComment: (postId: number, commentId: number) => void;
+}> = ({ isOpen, onClose, post, userProfile, onAddComment, onLikeComment }) => {
+  const [commentText, setCommentText] = useState('');
+
+  if (!post) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    onAddComment(post.id, commentText);
+    setCommentText('');
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] md:ml-[280px]"
+          />
+          {/* Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 md:left-[280px] bg-white rounded-t-[2.5rem] z-[70] h-[80vh] flex flex-col shadow-2xl border-t border-slate-100"
+          >
+            {/* Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 flex-shrink-0" />
+            
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-slate-50 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900">댓글 {post.comments.length}개</h3>
+              <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition text-slate-400">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+              {post.comments.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                  <MessageSquare size={40} strokeWidth={1} />
+                  <p className="text-sm font-medium">첫 번째 댓글을 남겨보세요.</p>
+                </div>
+              ) : (
+                post.comments.map(comment => (
+                  <CommentItem 
+                    key={comment.id} 
+                    comment={comment} 
+                    onReply={(parentId, text) => onAddComment(post.id, text, parentId)}
+                    onLike={(commentId) => onLikeComment(post.id, commentId)}
+                    userProfile={userProfile}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-6 border-t border-slate-100 bg-white">
+              <form onSubmit={handleSubmit} className="flex items-center gap-3">
+                <img src={userProfile.avatar} className="w-9 h-9 rounded-xl object-cover shadow-sm" alt="me" />
+                <div className="flex-1 relative">
+                  <input 
+                    type="text" 
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="댓글을 입력하세요..."
+                    className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-amber-500/20 transition"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!commentText.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-amber-600 disabled:text-slate-300 transition"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
 // --- Main Layout ---
 
 const MainApp = ({ onLogout }: { onLogout: () => void }) => {
@@ -386,9 +672,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [posts, setPosts] = useState(POSTS);
+  const [posts, setPosts] = useState<Post[]>(POSTS);
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
-  const [selectedUser, setSelectedUser] = useState<typeof POSTS[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Post | null>(null);
+  const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
+  const [activePostId, setActivePostId] = useState<number | null>(null);
   
   const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
@@ -442,7 +730,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const handleConfirmPost = () => {
     const parsedTags = uploadTags.split(' ').filter(t => t.trim() !== '').map(t => t.startsWith('#') ? t : `#${t}`);
     
-    const newPost: typeof POSTS[0] = {
+    const newPost: Post = {
       id: Date.now(),
       user: userProfile.user,
       avatar: userProfile.avatar,
@@ -453,9 +741,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
       image: mediaPreview || '',
       mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
       likes: 0,
+      isLiked: false,
       content: filterPrivateInfo(uploadText), // 필터링 적용
       tags: parsedTags,
-      comments: 0,
+      comments: [],
       time: 'JUST NOW',
       type: 'daily'
     };
@@ -471,12 +760,94 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   // Removed useEffect that revokes object URL on mediaPreview change
   // to prevent breaking the feed images/videos after posting.
 
+  const handleAddComment = (postId: number, text: string, parentId?: number) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId) return post;
+
+      const newComment: Comment = {
+        id: Date.now(),
+        user: userProfile.user,
+        avatar: userProfile.avatar,
+        text: filterPrivateInfo(text),
+        time: 'JUST NOW',
+        likes: 0,
+        isLiked: false,
+        replies: []
+      };
+
+      if (parentId) {
+        const updateReplies = (comments: Comment[]): Comment[] => {
+          return comments.map(comment => {
+            if (comment.id === parentId) {
+              return { ...comment, replies: [...comment.replies, newComment] };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              return { ...comment, replies: updateReplies(comment.replies) };
+            }
+            return comment;
+          });
+        };
+        return {
+          ...post,
+          comments: updateReplies(post.comments)
+        };
+      }
+
+      return { ...post, comments: [...post.comments, newComment] };
+    }));
+  };
+
+  const handleLikePost = (postId: number) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId) return post;
+      const isLiked = !post.isLiked;
+      return {
+        ...post,
+        isLiked,
+        likes: post.likes + (isLiked ? 1 : -1)
+      };
+    }));
+  };
+
+  const handleLikeComment = (postId: number, commentId: number) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id !== postId) return post;
+      
+      const updateComments = (comments: Comment[]): Comment[] => {
+        return comments.map(comment => {
+          if (comment.id === commentId) {
+            const isLiked = !comment.isLiked;
+            return {
+              ...comment,
+              isLiked,
+              likes: comment.likes + (isLiked ? 1 : -1)
+            };
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            return { ...comment, replies: updateComments(comment.replies) };
+          }
+          return comment;
+        });
+      };
+
+      return {
+        ...post,
+        comments: updateComments(post.comments)
+      };
+    }));
+  };
+
+  const activePost = posts.find(p => p.id === activePostId) || null;
+
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center font-sans selection:bg-amber-100 selection:text-amber-900">
       
       {/* Desktop Sidebar (Hidden on Mobile) */}
       <nav className="hidden md:flex flex-col w-[280px] fixed left-0 top-0 h-screen bg-white border-r border-slate-100 p-8 z-50">
-        <div className="font-luxury text-2xl font-black tracking-tighter text-slate-900 uppercase mb-16 cursor-pointer">
+        <div 
+          onClick={() => setCurrentTab('home')}
+          className="font-luxury text-2xl font-black tracking-tighter text-slate-900 uppercase mb-16 cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200"
+        >
           THE NODE
         </div>
         
@@ -514,11 +885,14 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
       </nav>
 
       {/* Main Content Area */}
-      <main className="w-full max-w-[500px] md:ml-[280px] min-h-screen pb-24 md:pb-10 relative">
+      <main className="w-full max-w-[500px] md:ml-[280px] min-h-screen pb-32 md:pb-10 relative">
         
         {/* Mobile Header (Hidden on Desktop) */}
         <header className="md:hidden sticky top-0 z-40 bg-slate-50/80 backdrop-blur-xl px-6 py-4 flex justify-between items-center">
-          <div className="font-luxury text-xl font-black tracking-tighter text-slate-900 uppercase">
+          <div 
+            onClick={() => setCurrentTab('home')}
+            className="font-luxury text-xl font-black tracking-tighter text-slate-900 uppercase cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200"
+          >
             THE NODE
           </div>
           <div className="flex items-center gap-5">
@@ -547,6 +921,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                     isFollowing={followedUsers.includes(post.user)}
                     onToggleFollow={() => toggleFollow(post.user)}
                     onUserClick={() => setSelectedUser(post)}
+                    onCommentClick={() => {
+                      setActivePostId(post.id);
+                      setIsCommentSheetOpen(true);
+                    }}
+                    onLike={() => handleLikePost(post.id)}
                   />
                 ))}
               </div>
@@ -848,8 +1227,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         </div>
       </aside>
 
-      {/* Mobile Floating Bottom Navigation (Hidden on Desktop) */}
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[380px] bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 px-6 py-4 rounded-full flex justify-between items-center z-50 shadow-2xl">
+      {/* Mobile Bottom Navigation (Fixed to Bottom) */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-black/[0.05] px-6 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] flex justify-between items-center z-50">
         {[
           { id: 'home', icon: Home },
           { id: 'search', icon: Search },
@@ -859,18 +1238,28 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
           <button 
             key={item.id}
             onClick={() => setCurrentTab(item.id)} 
-            className={`transition-all duration-300 ${currentTab === item.id ? 'text-white scale-110' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`transition-all duration-300 ${currentTab === item.id ? 'text-slate-900 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
           >
-            <item.icon size={24} strokeWidth={currentTab === item.id ? 2 : 1.5} />
+            <item.icon size={24} strokeWidth={currentTab === item.id ? 2.5 : 1.5} />
           </button>
         ))}
         <button 
           onClick={() => setCurrentTab('profile')} 
-          className={`transition-all duration-300 ${currentTab === 'profile' ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'opacity-70 hover:opacity-100'} rounded-md`}
+          className={`transition-all duration-300 ${currentTab === 'profile' ? 'ring-2 ring-slate-900 ring-offset-2 scale-110' : 'opacity-50 hover:opacity-100'} rounded-lg overflow-hidden`}
         >
-          <img src={STORIES[0].avatar} className="w-6 h-6 rounded-md object-cover" alt="profile" />
+          <img src={STORIES[0].avatar} className="w-6 h-6 object-cover" alt="profile" />
         </button>
       </nav>
+
+      {/* Comment Sheet */}
+      <CommentSheet 
+        isOpen={isCommentSheetOpen}
+        onClose={() => setIsCommentSheetOpen(false)}
+        post={activePost}
+        userProfile={userProfile}
+        onAddComment={handleAddComment}
+        onLikeComment={handleLikeComment}
+      />
 
       {/* Custom Confirm Modal */}
       <AnimatePresence>
