@@ -27,7 +27,7 @@ interface Post {
   isVerified: boolean;
   brand?: string;
   location: string;
-  image: string;
+  images: string[];
   mediaType: string;
   likes: number;
   isLiked?: boolean;
@@ -79,7 +79,11 @@ const POSTS: Post[] = [
     isVerified: true,
     brand: 'Mercedes-Benz',
     location: '한성자동차 강남전시장',
-    image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop'
+    ],
     mediaType: 'image',
     likes: 124,
     isLiked: false,
@@ -129,7 +133,10 @@ const POSTS: Post[] = [
     isVerified: true,
     brand: 'BMW',
     location: '코오롱모터스 서초',
-    image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop'
+    ],
     mediaType: 'image',
     likes: 89,
     isLiked: false,
@@ -146,7 +153,11 @@ const POSTS: Post[] = [
     role: 'customer',
     isVerified: false,
     location: '서울 강남구',
-    image: 'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1503376760367-112c072781b9?q=80&w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=1000&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1000&auto=format&fit=crop'
+    ],
     mediaType: 'image',
     likes: 12,
     isLiked: false,
@@ -320,6 +331,27 @@ const PremiumPostCard: React.FC<{
   onLike
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const scrollLeft = scrollRef.current.scrollLeft;
+      const width = scrollRef.current.clientWidth;
+      const index = Math.round(scrollLeft / width);
+      setCurrentIdx(index);
+    }
+  };
+
+  const scrollToIndex = (index: number) => {
+    if (scrollRef.current) {
+      const width = scrollRef.current.clientWidth;
+      scrollRef.current.scrollTo({
+        left: width * index,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const content = filterPrivateInfo(post.content);
   const shouldTruncate = content.length > 40; // Approximate one line
@@ -328,12 +360,9 @@ const PremiumPostCard: React.FC<{
   return (
     <article className="bg-white mx-0 md:mx-0 mb-4 md:mb-16 md:rounded-[3rem] shadow-none md:shadow-[0_40px_80px_rgba(0,0,0,0.06)] border-b border-slate-100 md:border overflow-hidden group/card">
       {/* Post Media & Integrated Header */}
-      <div 
-        onClick={onImageClick}
-        className="relative aspect-square w-full overflow-hidden bg-slate-50 group cursor-pointer"
-      >
+      <div className="relative aspect-square w-full overflow-hidden bg-slate-50 group">
         {/* Post Header Overlay (Instagram Style Integrated) */}
-        <div className="absolute top-0 left-0 right-0 z-10 px-4 py-4 bg-gradient-to-b from-black/50 via-black/20 to-transparent pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 z-20 px-4 py-4 bg-gradient-to-b from-black/50 via-black/20 to-transparent pointer-events-none">
           <div className="flex items-center gap-3 pointer-events-auto">
             <img 
               src={post.avatar} 
@@ -357,10 +386,63 @@ const PremiumPostCard: React.FC<{
           </div>
         </div>
 
-        {post.mediaType === 'video' ? (
-          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
-        ) : (
-          <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
+        {/* Horizontal Scrollable Media Container */}
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth"
+          onClick={onImageClick}
+        >
+          {post.images.map((img, idx) => (
+            <div key={idx} className="w-full h-full flex-shrink-0 snap-start snap-always relative">
+              {post.mediaType === 'video' ? (
+                <video src={img} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
+              ) : (
+                <img src={img} alt={`Post content ${idx + 1}`} className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Navigation Buttons */}
+        {post.images.length > 1 && (
+          <>
+            {currentIdx > 0 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); scrollToIndex(currentIdx - 1); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/20 text-white hover:bg-black/40 transition backdrop-blur-sm hidden md:flex active:scale-90"
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
+            {currentIdx < post.images.length - 1 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); scrollToIndex(currentIdx + 1); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/20 text-white hover:bg-black/40 transition backdrop-blur-sm hidden md:flex active:scale-90"
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Image Indicators (Squares) */}
+        {post.images.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1 px-2 py-1.5 rounded-sm bg-black/10 backdrop-blur-[2px]">
+            {post.images.map((_, idx) => (
+              <div 
+                key={idx} 
+                className={`w-2.5 h-1 rounded-[1px] transition-all duration-300 ${idx === currentIdx ? 'bg-white w-5' : 'bg-white/50'}`} 
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Image Count Badge */}
+        {post.images.length > 1 && (
+          <div className="absolute top-4 right-4 z-20 px-2 py-1 rounded-lg bg-black/40 backdrop-blur-md text-[10px] font-bold text-white">
+            {currentIdx + 1}/{post.images.length}
+          </div>
         )}
       </div>
 
@@ -619,8 +701,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [currentTab, setCurrentTab] = useState('home');
   const [uploadText, setUploadText] = useState('');
   const [uploadTags, setUploadTags] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>(POSTS);
@@ -734,25 +816,27 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setMediaFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setMediaPreview(previewUrl);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const newFiles = [...mediaFiles, ...files].slice(0, 20);
+      setMediaFiles(newFiles);
+      
+      const newPreviews = files.map((file: File) => URL.createObjectURL(file));
+      setMediaPreviews(prev => [...prev, ...newPreviews].slice(0, 20));
     }
   };
 
   const clearMedia = (revoke: boolean | React.MouseEvent = true) => {
     const shouldRevoke = typeof revoke === 'boolean' ? revoke : true;
-    setMediaFile(null);
-    if (mediaPreview) {
-      if (shouldRevoke) URL.revokeObjectURL(mediaPreview);
-      setMediaPreview(null);
+    setMediaFiles([]);
+    if (mediaPreviews.length > 0) {
+      if (shouldRevoke) mediaPreviews.forEach(url => URL.revokeObjectURL(url));
+      setMediaPreviews([]);
     }
   };
 
   const handleUploadClick = () => {
-    if (!uploadText.trim() && !mediaFile) return;
+    if (!uploadText.trim() && mediaFiles.length === 0) return;
     
     if (checkCommercialKeywords(uploadText, userProfile.isVerified)) {
       setShowConfirmModal(true);
@@ -770,8 +854,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
       isVerified: userProfile.isVerified,
       brand: '',
       location: '',
-      image: mediaPreview || '',
-      mediaType: mediaFile?.type.startsWith('video/') ? 'video' : 'image',
+      images: mediaPreviews.length > 0 ? mediaPreviews : [],
+      mediaType: mediaFiles[0]?.type.startsWith('video/') ? 'video' : 'image',
       likes: 0,
       isLiked: false,
       content: filterPrivateInfo(uploadText), // 필터링 적용
@@ -1049,19 +1133,40 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   onChange={(e) => setUploadTags(e.target.value)}
                 />
 
-                {/* Media Preview */}
-                {mediaPreview && (
-                  <div className="relative w-24 h-24 rounded-xl overflow-hidden mb-4 bg-slate-100 border border-slate-200">
-                    <button 
-                      onClick={clearMedia}
-                      className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition z-10"
-                    >
-                      <X size={12} strokeWidth={3} />
-                    </button>
-                    {mediaFile?.type.startsWith('video/') ? (
-                      <video src={mediaPreview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+                {/* Media Previews */}
+                {mediaPreviews.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+                    {mediaPreviews.map((preview, idx) => (
+                      <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200">
+                        <button 
+                          onClick={() => {
+                            const newPreviews = [...mediaPreviews];
+                            const newFiles = [...mediaFiles];
+                            URL.revokeObjectURL(newPreviews[idx]);
+                            newPreviews.splice(idx, 1);
+                            newFiles.splice(idx, 1);
+                            setMediaPreviews(newPreviews);
+                            setMediaFiles(newFiles);
+                          }}
+                          className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition z-10"
+                        >
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                        {mediaFiles[idx]?.type.startsWith('video/') ? (
+                          <video src={preview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                    {mediaPreviews.length < 20 && (
+                      <button 
+                        onClick={() => photoInputRef.current?.click()}
+                        className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:text-amber-600 hover:border-amber-600 transition flex-shrink-0"
+                      >
+                        <Plus size={20} />
+                        <span className="text-[10px] font-bold mt-1">{mediaPreviews.length}/20</span>
+                      </button>
                     )}
                   </div>
                 )}
@@ -1078,8 +1183,9 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                     <input 
                       ref={cameraInputRef}
                       type="file" 
-                      accept="image/*" 
+                      accept="image/*,video/*" 
                       capture="environment"
+                      multiple
                       className="hidden" 
                       onChange={handleMediaChange}
                       onClick={(e) => (e.target as any).value = null}
@@ -1095,6 +1201,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       ref={photoInputRef}
                       type="file" 
                       accept="image/*,video/*"
+                      multiple
                       className="hidden" 
                       onChange={handleMediaChange}
                       onClick={(e) => (e.target as any).value = null}
@@ -1103,9 +1210,9 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   
                   <button 
                     onClick={handleUploadClick}
-                    disabled={!uploadText.trim() && !mediaFile}
+                    disabled={!uploadText.trim() && mediaFiles.length === 0}
                     className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-                      (!uploadText.trim() && !mediaFile) 
+                      (!uploadText.trim() && mediaFiles.length === 0) 
                         ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
                         : 'bg-slate-900 text-white hover:bg-black shadow-[0_4px_12px_rgba(0,0,0,0.1)] active:scale-95'
                     }`}
@@ -1272,9 +1379,9 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                         className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xl"
                       >
                         {post.mediaType === 'video' ? (
-                          <video src={post.image} className="w-full h-full object-cover" />
+                          <video src={post.images[0]} className="w-full h-full object-cover" />
                         ) : (
-                          <img src={post.image} alt="post" className="w-full h-full object-cover" />
+                          <img src={post.images[0]} alt="post" className="w-full h-full object-cover" />
                         )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
                           <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
@@ -1453,13 +1560,17 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               <p className="text-xs text-slate-500 text-center mb-5">작성하신 내용과 미디어를 확인해주세요.</p>
 
               <div className="bg-slate-50 rounded-2xl p-4 mb-6 max-h-[40vh] overflow-y-auto">
-                {mediaPreview && (
-                  <div className="w-full h-32 rounded-xl overflow-hidden mb-3 bg-slate-200">
-                    {mediaFile?.type.startsWith('video/') ? (
-                      <video src={mediaPreview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
-                    )}
+                {mediaPreviews.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-3">
+                    {mediaPreviews.map((preview, idx) => (
+                      <div key={idx} className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-slate-200">
+                        {mediaFiles[idx]?.type.startsWith('video/') ? (
+                          <video src={preview} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
                 {uploadText && (

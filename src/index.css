@@ -8,3 +8,11 @@
   --color-gold-light: #F9DF9F;
   --color-gold-dark: #B5952F;
 }
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
