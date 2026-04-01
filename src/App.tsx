@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Home, Search, Plus, Bell, User, 
   MessageSquare, Send, Bookmark, MoreHorizontal, 
-  CheckCircle2, FileText, CarFront, ChevronRight, Heart,
+  CheckCircle2, FileText, CarFront, ChevronRight, ChevronLeft, Heart,
   Mail, Lock, ArrowRight, Github, Image as ImageIcon, X, Camera
 } from 'lucide-react';
 
@@ -309,11 +309,13 @@ const LiveConnectTray = ({ onUserClick }: { onUserClick: (user: any) => void }) 
 const PremiumPostCard: React.FC<{ 
   post: Post, 
   onUserClick?: () => void,
+  onImageClick?: () => void,
   onCommentClick?: () => void,
   onLike?: () => void
 }> = ({ 
   post, 
   onUserClick,
+  onImageClick,
   onCommentClick,
   onLike
 }) => {
@@ -326,7 +328,10 @@ const PremiumPostCard: React.FC<{
   return (
     <article className="bg-white mx-0 md:mx-0 mb-4 md:mb-16 md:rounded-[3rem] shadow-none md:shadow-[0_40px_80px_rgba(0,0,0,0.06)] border-b border-slate-100 md:border overflow-hidden group/card">
       {/* Post Media & Integrated Header */}
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-50 group">
+      <div 
+        onClick={onImageClick}
+        className="relative aspect-square w-full overflow-hidden bg-slate-50 group cursor-pointer"
+      >
         {/* Post Header Overlay (Instagram Style Integrated) */}
         <div className="absolute top-0 left-0 right-0 z-10 px-4 py-4 bg-gradient-to-b from-black/50 via-black/20 to-transparent pointer-events-none">
           <div className="flex items-center gap-3 pointer-events-auto">
@@ -623,6 +628,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [activePostId, setActivePostId] = useState<number | null>(null);
   const [profileViewMode, setProfileViewMode] = useState<'grid' | 'list'>('grid');
+  const [homeViewMode, setHomeViewMode] = useState<'normal' | 'expanded'>('normal');
   
   const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
@@ -642,8 +648,8 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
 
   const [viewingUser, setViewingUser] = useState<any>(null);
 
-  const handleUserClick = (user: any) => {
-    setProfileViewMode('grid');
+  const handleUserClick = (user: any, initialMode: 'grid' | 'list' = 'grid') => {
+    setProfileViewMode(initialMode);
     // 만약 스토리에서 '내 스토리'를 클릭했다면 내 프로필로
     if (user.user === '내 스토리' || user.user === userProfile.user) {
       setViewingUser(null);
@@ -663,6 +669,22 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
     }
     setCurrentTab('profile');
     window.scrollTo(0, 0);
+  };
+
+  const handlePostClick = (post: Post) => {
+    setHomeViewMode('expanded');
+    setTimeout(() => {
+      const element = document.getElementById(`post-expanded-${post.id}`);
+      if (element) {
+        const headerOffset = 60;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+    }, 100);
   };
 
   const toggleFollow = (userName: string) => {
@@ -888,21 +910,73 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full pt-2 md:pt-8"
             >
-              <LiveConnectTray onUserClick={handleUserClick} />
-              <div className="flex flex-col mt-4">
-                {posts.map(post => (
-                  <PremiumPostCard 
-                    key={post.id} 
-                    post={post} 
-                    onUserClick={() => handleUserClick(post)}
-                    onCommentClick={() => {
-                      setActivePostId(post.id);
-                      setIsCommentSheetOpen(true);
-                    }}
-                    onLike={() => handleLikePost(post.id)}
-                  />
-                ))}
-              </div>
+              {homeViewMode === 'normal' ? (
+                <>
+                  <LiveConnectTray onUserClick={handleUserClick} />
+                  <div className="flex flex-col mt-4">
+                    {posts.map(post => (
+                      <PremiumPostCard 
+                        key={post.id} 
+                        post={post} 
+                        onUserClick={() => handleUserClick(post)}
+                        onImageClick={() => handlePostClick(post)}
+                        onCommentClick={() => {
+                          setActivePostId(post.id);
+                          setIsCommentSheetOpen(true);
+                        }}
+                        onLike={() => handleLikePost(post.id)}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col h-[calc(100vh-60px)] md:h-[calc(100vh-40px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
+                  {/* Expanded Feed Header */}
+                  <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-slate-100/50">
+                    <button 
+                      onClick={() => {
+                        setHomeViewMode('normal');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }} 
+                      className="p-2 hover:bg-slate-100 rounded-full transition text-slate-900 active:scale-95"
+                    >
+                      <ChevronLeft size={24} strokeWidth={2.5} />
+                    </button>
+                    <h2 className="text-[11px] font-black tracking-[0.2em] text-slate-900 uppercase">Explore</h2>
+                    <div className="w-10" /> {/* Spacer for centering */}
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    {posts.map(post => (
+                      <div key={post.id} id={`post-expanded-${post.id}`} className="snap-start min-h-[calc(100vh-120px)] flex flex-col justify-center py-4">
+                        <PremiumPostCard 
+                          post={post} 
+                          onUserClick={() => handleUserClick(post)}
+                          onImageClick={() => {}} // Already in expanded view
+                          onCommentClick={() => {
+                            setActivePostId(post.id);
+                            setIsCommentSheetOpen(true);
+                          }}
+                          onLike={() => handleLikePost(post.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Back to Normal Feed Button at bottom */}
+                  <div className="px-6 pb-20 snap-end">
+                    <button 
+                      onClick={() => {
+                        setHomeViewMode('normal');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 transition shadow-sm"
+                    >
+                      메인 피드로 돌아가기
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
