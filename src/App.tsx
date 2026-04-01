@@ -4,7 +4,7 @@ import {
   Home, Search, Plus, Bell, User, 
   MessageSquare, Send, Bookmark, MoreHorizontal, 
   CheckCircle2, FileText, CarFront, ChevronRight, Heart,
-  Mail, Lock, ArrowRight, Github, Image as ImageIcon, X, Camera, Video
+  Mail, Lock, ArrowRight, Github, Image as ImageIcon, X, Camera
 } from 'lucide-react';
 
 // --- Types ---
@@ -284,10 +284,14 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
   );
 };
 
-const LiveConnectTray = () => (
+const LiveConnectTray = ({ onUserClick }: { onUserClick: (user: any) => void }) => (
   <div className="flex gap-5 overflow-x-auto px-6 py-8 scrollbar-hide">
     {STORIES.map((story) => (
-      <div key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
+      <div 
+        key={story.id} 
+        onClick={() => onUserClick(story)}
+        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
+      >
         <div className={`relative p-[2px] rounded-2xl transition-transform duration-300 group-hover:scale-105 ${story.hasStory ? 'bg-gradient-to-tr from-slate-800 to-slate-400' : 'bg-transparent'}`}>
           <div className="bg-slate-50 p-[3px] rounded-2xl">
             <img src={story.avatar} alt={story.user} className="w-16 h-16 rounded-xl object-cover shadow-sm" />
@@ -674,7 +678,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>(POSTS);
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
-  const [selectedUser, setSelectedUser] = useState<Post | null>(null);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [activePostId, setActivePostId] = useState<number | null>(null);
   
@@ -693,7 +696,30 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const [viewingUser, setViewingUser] = useState<any>(null);
+
+  const handleUserClick = (user: any) => {
+    // 만약 스토리에서 '내 스토리'를 클릭했다면 내 프로필로
+    if (user.user === '내 스토리' || user.user === userProfile.user) {
+      setViewingUser(null);
+    } else {
+      // 해당 유저의 전체 정보를 찾거나 기본 정보 사용
+      const fullUser = posts.find(p => p.user === user.user) || {
+        user: user.user,
+        avatar: user.avatar,
+        role: user.role || 'customer',
+        isVerified: user.isVerified || false,
+        statusMessage: 'THE NODE 프리미엄 회원입니다.',
+        tags: ['#차쟁이', '#THE_NODE'],
+        followers: '12.4K',
+        following: '450'
+      };
+      setViewingUser(fullUser);
+    }
+    setCurrentTab('profile');
+    window.scrollTo(0, 0);
+  };
 
   const toggleFollow = (userName: string) => {
     setFollowedUsers(prev => 
@@ -868,9 +894,15 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
             </button>
           ))}
           
-          <button onClick={() => setCurrentTab('profile')} className={`flex items-center gap-5 p-3.5 rounded-2xl transition-all duration-300 mt-2 ${currentTab === 'profile' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-            <img src={STORIES[0].avatar} className="w-6 h-6 rounded-md object-cover" alt="profile" />
-            <span className={`text-sm tracking-wide ${currentTab === 'profile' ? 'font-bold' : 'font-medium'}`}>Profile</span>
+          <button 
+            onClick={() => {
+              setViewingUser(null);
+              setCurrentTab('profile');
+            }} 
+            className={`flex items-center gap-5 p-3.5 rounded-2xl transition-all duration-300 mt-2 ${currentTab === 'profile' && !viewingUser ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+          >
+            <img src={userProfile.avatar} className="w-6 h-6 rounded-md object-cover" alt="profile" />
+            <span className={`text-sm tracking-wide ${currentTab === 'profile' && !viewingUser ? 'font-bold' : 'font-medium'}`}>Profile</span>
           </button>
         </div>
 
@@ -912,7 +944,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full pt-2 md:pt-8"
             >
-              <LiveConnectTray />
+              <LiveConnectTray onUserClick={handleUserClick} />
               <div className="flex flex-col mt-4">
                 {posts.map(post => (
                   <PremiumPostCard 
@@ -920,7 +952,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                     post={post} 
                     isFollowing={followedUsers.includes(post.user)}
                     onToggleFollow={() => toggleFollow(post.user)}
-                    onUserClick={() => setSelectedUser(post)}
+                    onUserClick={() => handleUserClick(post)}
                     onCommentClick={() => {
                       setActivePostId(post.id);
                       setIsCommentSheetOpen(true);
@@ -972,7 +1004,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 <input
                   type="text"
                   className="w-full p-4 bg-[#F9F9F9] border-none rounded-2xl text-sm focus:outline-none focus:ring-0 mb-3 text-slate-800 placeholder-slate-400"
-                  placeholder="#태그를 입력해보세요 (예: #차쟁이 #드라이브)"
+                  placeholder="#태그"
                   value={uploadTags}
                   onChange={(e) => setUploadTags(e.target.value)}
                 />
@@ -1025,32 +1057,18 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       className="hidden" 
                       onChange={handleMediaChange} 
                     />
-
-                    <button 
-                      onClick={() => videoInputRef.current?.click()}
-                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
-                    >
-                      <Video size={22} strokeWidth={1.5} />
-                    </button>
-                    <input 
-                      ref={videoInputRef}
-                      type="file" 
-                      accept="video/*" 
-                      className="hidden" 
-                      onChange={handleMediaChange} 
-                    />
                   </div>
                   
                   <button 
                     onClick={handleUploadClick}
                     disabled={!uploadText.trim() && !mediaFile}
-                    className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
+                    className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
                       (!uploadText.trim() && !mediaFile) 
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                        : 'bg-slate-900 text-white hover:bg-black shadow-md'
+                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
+                        : 'bg-slate-900 text-white hover:bg-black shadow-[0_4px_12px_rgba(0,0,0,0.1)] active:scale-95'
                     }`}
                   >
-                    게시
+                    등록 <Send size={16} strokeWidth={2.5} />
                   </button>
                 </div>
               </div>
@@ -1070,20 +1088,22 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
                 <div className="flex flex-col items-center">
                   <img 
-                    src={userProfile.avatar} 
-                    alt={userProfile.user} 
+                    src={viewingUser ? viewingUser.avatar : userProfile.avatar} 
+                    alt={viewingUser ? viewingUser.user : userProfile.user} 
                     className="w-24 h-24 rounded-2xl object-cover shadow-md mb-4 cursor-pointer hover:opacity-90 transition" 
-                    onClick={() => setLightboxImage(userProfile.avatar)}
+                    onClick={() => setLightboxImage(viewingUser ? viewingUser.avatar : userProfile.avatar)}
                   />
                   <div className="flex items-center gap-1.5 mb-1">
-                    <h2 className="text-2xl font-black text-slate-900">{userProfile.user}</h2>
-                    {userProfile.isVerified && <CheckCircle2 size={20} className="text-amber-600" fill="currentColor" stroke="white" />}
+                    <h2 className="text-2xl font-black text-slate-900">{viewingUser ? viewingUser.user : userProfile.user}</h2>
+                    {(viewingUser ? viewingUser.isVerified : userProfile.isVerified) && <CheckCircle2 size={20} className="text-amber-600" fill="currentColor" stroke="white" />}
                   </div>
-                  <p className="text-sm text-slate-500 font-medium mb-3 text-center max-w-xs">{userProfile.statusMessage}</p>
+                  <p className="text-sm text-slate-500 font-medium mb-3 text-center max-w-xs">
+                    {viewingUser ? viewingUser.statusMessage || 'THE NODE 프리미엄 회원입니다.' : userProfile.statusMessage}
+                  </p>
                   
-                  {userProfile.tags && userProfile.tags.length > 0 && (
+                  {(viewingUser ? viewingUser.tags : userProfile.tags) && (viewingUser ? viewingUser.tags : userProfile.tags).length > 0 && (
                     <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-xs">
-                      {userProfile.tags.map((tag, idx) => (
+                      {(viewingUser ? viewingUser.tags : userProfile.tags).map((tag: string, idx: number) => (
                         <span key={idx} className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
                           {tag}
                         </span>
@@ -1093,46 +1113,75 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   
                   <div className="flex gap-8 mb-6 w-full justify-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">{posts.filter(p => p.user === userProfile.user).length}</span>
+                      <span className="text-xl font-bold text-slate-900">
+                        {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).length}
+                      </span>
                       <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Posts</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">{userProfile.followers}</span>
+                      <span className="text-xl font-bold text-slate-900">
+                        {viewingUser ? (followedUsers.includes(viewingUser.user) ? '12.5K' : '12.4K') : userProfile.followers}
+                      </span>
                       <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Followers</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">{userProfile.following}</span>
+                      <span className="text-xl font-bold text-slate-900">{viewingUser ? '450' : userProfile.following}</span>
                       <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Following</span>
                     </div>
                   </div>
 
                   <div className="flex gap-3 w-full max-w-xs">
-                    <button 
-                      onClick={() => {
-                        setEditProfileData({ 
-                          avatar: userProfile.avatar, 
-                          statusMessage: userProfile.statusMessage,
-                          tags: userProfile.tags.join(' ')
-                        });
-                        setShowEditProfile(true);
-                      }}
-                      className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-sm"
-                    >
-                      프로필 편집
-                    </button>
-                    <button 
-                      onClick={onLogout}
-                      className="py-3 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition shadow-sm"
-                    >
-                      로그아웃
-                    </button>
+                    {!viewingUser ? (
+                      <>
+                        <button 
+                          onClick={() => {
+                            setEditProfileData({ 
+                              avatar: userProfile.avatar, 
+                              statusMessage: userProfile.statusMessage,
+                              tags: userProfile.tags.join(' ')
+                            });
+                            setShowEditProfile(true);
+                          }}
+                          className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-sm"
+                        >
+                          프로필 편집
+                        </button>
+                        <button 
+                          onClick={onLogout}
+                          className="py-3 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition shadow-sm"
+                        >
+                          로그아웃
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleFollow(viewingUser.user)}
+                          className={`flex-1 py-3 rounded-xl font-bold text-sm transition shadow-sm ${
+                            followedUsers.includes(viewingUser.user)
+                              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              : viewingUser.isVerified
+                                ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                : 'bg-slate-900 text-white hover:bg-black'
+                          }`}
+                        >
+                          {followedUsers.includes(viewingUser.user) ? '팔로잉' : '팔로우'}
+                        </button>
+                        <button 
+                          onClick={() => setViewingUser(null)}
+                          className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-900 border border-slate-200 hover:bg-slate-100 transition shadow-sm"
+                        >
+                          내 프로필
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* My Posts Grid */}
               <div className="grid grid-cols-3 gap-1 md:gap-2">
-                {posts.filter(p => p.user === userProfile.user).map(post => (
+                {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).map(post => (
                   <div key={post.id} className="aspect-square bg-slate-200 relative group cursor-pointer overflow-hidden rounded-lg md:rounded-xl">
                     {post.mediaType === 'video' ? (
                       <video src={post.image} className="w-full h-full object-cover" />
@@ -1144,7 +1193,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                         <Heart size={16} fill="currentColor" /> {post.likes}
                       </div>
                       <div className="flex items-center gap-1 font-bold text-sm">
-                        <MessageSquare size={16} fill="currentColor" /> {post.comments}
+                        <MessageSquare size={16} fill="currentColor" /> {post.comments.length}
                       </div>
                     </div>
                   </div>
@@ -1198,17 +1247,22 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         <div className="flex flex-col gap-5 px-2">
           {[2, 3, 4].map(id => (
             <div key={id} className="flex items-center justify-between group">
-              <div className="flex items-center gap-4">
-                <img src={STORIES[id].avatar} className="w-10 h-10 rounded-xl object-cover shadow-sm group-hover:scale-105 transition" alt="Suggested" />
+              <div className="flex items-center gap-4 cursor-pointer" onClick={() => handleUserClick(STORIES[id-1])}>
+                <img src={STORIES[id-1].avatar} className="w-10 h-10 rounded-xl object-cover shadow-sm group-hover:scale-105 transition" alt="Suggested" />
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-sm text-slate-900">{STORIES[id].user}</p>
+                    <p className="font-bold text-sm text-slate-900">{STORIES[id-1].user}</p>
                     <CheckCircle2 size={14} className="text-amber-600" fill="currentColor" stroke="white" />
                   </div>
                   <p className="text-slate-400 text-[11px] font-medium mt-0.5">Official Dealer</p>
                 </div>
               </div>
-              <button className="bg-slate-50 hover:bg-slate-100 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg transition">Follow</button>
+              <button 
+                onClick={() => toggleFollow(STORIES[id-1].user)}
+                className={`text-xs font-bold px-4 py-2 rounded-lg transition ${followedUsers.includes(STORIES[id-1].user) ? 'bg-slate-100 text-slate-500' : 'bg-slate-50 hover:bg-slate-100 text-slate-900'}`}
+              >
+                {followedUsers.includes(STORIES[id-1].user) ? 'Following' : 'Follow'}
+              </button>
             </div>
           ))}
         </div>
@@ -1237,14 +1291,20 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         ].map(item => (
           <button 
             key={item.id}
-            onClick={() => setCurrentTab(item.id)} 
+            onClick={() => {
+              if (item.id === 'profile') setViewingUser(null);
+              setCurrentTab(item.id);
+            }} 
             className={`transition-all duration-300 ${currentTab === item.id ? 'text-slate-900 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <item.icon size={24} strokeWidth={currentTab === item.id ? 2.5 : 1.5} />
           </button>
         ))}
         <button 
-          onClick={() => setCurrentTab('profile')} 
+          onClick={() => {
+            setViewingUser(null);
+            setCurrentTab('profile');
+          }} 
           className={`transition-all duration-300 ${currentTab === 'profile' ? 'ring-2 ring-slate-900 ring-offset-2 scale-110' : 'opacity-50 hover:opacity-100'} rounded-lg overflow-hidden`}
         >
           <img src={STORIES[0].avatar} className="w-6 h-6 object-cover" alt="profile" />
@@ -1304,86 +1364,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 >
                   확인
                 </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* User Profile Modal */}
-      <AnimatePresence>
-        {selectedUser && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-slate-100 relative overflow-hidden"
-            >
-              <button 
-                onClick={() => setSelectedUser(null)} 
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition z-10"
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
-
-              <div className="flex flex-col items-center mt-4 mb-6">
-                <img 
-                  src={selectedUser.avatar} 
-                  alt={selectedUser.user} 
-                  className="w-20 h-20 rounded-2xl object-cover shadow-md mb-4 cursor-pointer hover:opacity-90 transition" 
-                  onClick={() => setLightboxImage(selectedUser.avatar)}
-                />
-                <div className="flex items-center gap-1.5 mb-1">
-                  <h3 className="text-xl font-black text-slate-900">{selectedUser.user}</h3>
-                  {selectedUser.role === 'dealer' && <CheckCircle2 size={18} className="text-amber-600" fill="currentColor" stroke="white" />}
-                </div>
-                {selectedUser.isVerified && (
-                  <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 mb-3">
-                    THE NODE Verified
-                  </span>
-                )}
-
-                <div className="flex gap-6 mt-2 mb-6">
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-bold text-slate-900">
-                      {posts.filter(p => p.user === selectedUser.user).length}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Posts</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-bold text-slate-900">
-                      {followedUsers.includes(selectedUser.user) ? '12.5K' : '12.4K'}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Followers</span>
-                  </div>
-                </div>
-
-                {selectedUser.user !== userProfile.user && (
-                  <div className="flex gap-3 w-full">
-                    <button
-                      onClick={() => toggleFollow(selectedUser.user)}
-                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition shadow-sm ${
-                        followedUsers.includes(selectedUser.user)
-                          ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          : selectedUser.isVerified
-                            ? 'bg-amber-600 text-white hover:bg-amber-700'
-                            : 'bg-slate-900 text-white hover:bg-black'
-                      }`}
-                    >
-                      {followedUsers.includes(selectedUser.user) ? '팔로잉' : '팔로우'}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        alert('준비 중입니다.');
-                        setSelectedUser(null);
-                      }}
-                      className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-900 border border-slate-200 hover:bg-slate-100 transition shadow-sm"
-                    >
-                      게시물 보기
-                    </button>
-                  </div>
-                )}
               </div>
             </motion.div>
           </div>
