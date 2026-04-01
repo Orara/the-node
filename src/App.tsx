@@ -995,7 +995,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                     <input 
                       ref={photoInputRef}
                       type="file" 
-                      accept="image/*" 
+                      accept="image/*,video/*" 
                       className="hidden" 
                       onChange={handleMediaChange} 
                     />
