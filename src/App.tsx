@@ -622,6 +622,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [activePostId, setActivePostId] = useState<number | null>(null);
+  const [profileViewMode, setProfileViewMode] = useState<'grid' | 'list'>('grid');
   
   const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
@@ -642,6 +643,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [viewingUser, setViewingUser] = useState<any>(null);
 
   const handleUserClick = (user: any) => {
+    setProfileViewMode('grid');
     // 만약 스토리에서 '내 스토리'를 클릭했다면 내 프로필로
     if (user.user === '내 스토리' || user.user === userProfile.user) {
       setViewingUser(null);
@@ -1126,25 +1128,91 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                 </div>
               </div>
 
-              {/* My Posts Grid */}
-              <div className="grid grid-cols-3 gap-0.5 md:gap-2 px-0.5 md:px-0">
-                {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).map(post => (
-                  <div key={post.id} className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xl">
-                    {post.mediaType === 'video' ? (
-                      <video src={post.image} className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={post.image} alt="post" className="w-full h-full object-cover" />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
-                      <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
-                        <Heart size={16} fill="currentColor" /> {post.likes}
+              {/* Profile View Toggle Tabs */}
+              <div className="flex border-t border-slate-100 mt-4 sticky top-0 bg-slate-50/80 backdrop-blur-md z-20">
+                <button 
+                  onClick={() => setProfileViewMode('grid')}
+                  className={`flex-1 py-3 flex justify-center items-center transition-all ${profileViewMode === 'grid' ? 'text-slate-900 border-t-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <ImageIcon size={20} strokeWidth={profileViewMode === 'grid' ? 2.5 : 1.5} />
+                </button>
+                <button 
+                  onClick={() => setProfileViewMode('list')}
+                  className={`flex-1 py-3 flex justify-center items-center transition-all ${profileViewMode === 'list' ? 'text-slate-900 border-t-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <FileText size={20} strokeWidth={profileViewMode === 'list' ? 2.5 : 1.5} />
+                </button>
+              </div>
+
+              {/* My Posts Grid or List View */}
+              <div className="mt-0.5">
+                {profileViewMode === 'grid' ? (
+                  <div className="grid grid-cols-3 gap-0.5 md:gap-2 px-0.5 md:px-0">
+                    {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).map(post => (
+                      <div 
+                        key={post.id} 
+                        onClick={() => {
+                          setProfileViewMode('list');
+                          setTimeout(() => {
+                            const element = document.getElementById(`post-${post.id}`);
+                            if (element) {
+                              const headerOffset = 60;
+                              const elementPosition = element.getBoundingClientRect().top;
+                              const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                              window.scrollTo({
+                                top: offsetPosition,
+                                behavior: "smooth"
+                              });
+                            }
+                          }, 100);
+                        }}
+                        className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xl"
+                      >
+                        {post.mediaType === 'video' ? (
+                          <video src={post.image} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={post.image} alt="post" className="w-full h-full object-cover" />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+                          <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
+                            <Heart size={16} fill="currentColor" /> {post.likes}
+                          </div>
+                          <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
+                            <MessageSquare size={16} fill="currentColor" /> {post.comments.length}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
-                        <MessageSquare size={16} fill="currentColor" /> {post.comments.length}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col mt-4">
+                    {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).map(post => (
+                      <div key={post.id} id={`post-${post.id}`}>
+                        <PremiumPostCard 
+                          post={post} 
+                          onUserClick={() => {}} // Already on profile
+                          onCommentClick={() => {
+                            setActivePostId(post.id);
+                            setIsCommentSheetOpen(true);
+                          }}
+                          onLike={() => handleLikePost(post.id)}
+                        />
                       </div>
+                    ))}
+                    {/* Back to Grid Button at the bottom of list */}
+                    <div className="px-6 pb-10">
+                      <button 
+                        onClick={() => {
+                          setProfileViewMode('grid');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 transition shadow-sm"
+                      >
+                        그리드 뷰로 돌아가기
+                      </button>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </motion.div>
           )}
