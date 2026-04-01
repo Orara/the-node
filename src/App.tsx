@@ -629,24 +629,48 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [activePostId, setActivePostId] = useState<number | null>(null);
   const [profileViewMode, setProfileViewMode] = useState<'grid' | 'list'>('grid');
   const [homeViewMode, setHomeViewMode] = useState<'normal' | 'expanded'>('normal');
+  const [viewingUser, setViewingUser] = useState<any>(null);
   
-  // Handle Native Back Button for Expanded View
+  // Ref to track if the state change was triggered by popstate (back button)
+  const isPopStateRef = useRef(false);
+
+  // Handle Native Back Button for all views except Home
   useEffect(() => {
     const handlePopState = () => {
-      if (homeViewMode === 'expanded') {
+      isPopStateRef.current = true;
+      
+      if (lightboxImage) {
+        setLightboxImage(null);
+      } else if (homeViewMode === 'expanded') {
         setHomeViewMode('normal');
+      } else if (viewingUser) {
+        setViewingUser(null);
+        setCurrentTab('home');
+      } else if (currentTab !== 'home') {
+        setCurrentTab('home');
       }
+
+      // Reset the ref after a short delay to allow other effects to run
+      setTimeout(() => {
+        isPopStateRef.current = false;
+      }, 100);
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [homeViewMode]);
+  }, [homeViewMode, lightboxImage, viewingUser, currentTab]);
 
+  // Push state whenever we move away from the base Home state
   useEffect(() => {
-    if (homeViewMode === 'expanded') {
-      window.history.pushState({ mode: 'expanded' }, '');
+    // If this change was triggered by the back button itself, don't push again
+    if (isPopStateRef.current) return;
+
+    const isBaseHome = currentTab === 'home' && homeViewMode === 'normal' && !viewingUser && !lightboxImage;
+    
+    if (!isBaseHome) {
+      window.history.pushState({ type: 'navigation' }, '');
     }
-  }, [homeViewMode]);
+  }, [currentTab, homeViewMode, viewingUser, lightboxImage]);
 
   const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
@@ -663,8 +687,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-
-  const [viewingUser, setViewingUser] = useState<any>(null);
 
   const handleUserClick = (user: any, initialMode: 'grid' | 'list' = 'grid') => {
     setProfileViewMode(initialMode);
@@ -1073,7 +1095,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       ref={photoInputRef}
                       type="file" 
                       accept="image/*,video/*"
-                      multiple
                       className="hidden" 
                       onChange={handleMediaChange}
                       onClick={(e) => (e.target as any).value = null}
@@ -1108,7 +1129,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               {/* Instagram Style Profile Header */}
               <div className="relative mb-6">
                 {/* Cover Image */}
-                <div className="h-32 md:h-48 w-full overflow-hidden bg-slate-100 md:rounded-3xl">
+                <div 
+                  className="h-32 md:h-48 w-full overflow-hidden bg-slate-100 md:rounded-3xl cursor-zoom-in"
+                  onClick={() => setLightboxImage("https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop")}
+                >
                   <img 
                     src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop" 
                     className="w-full h-full object-cover opacity-80" 
@@ -1555,7 +1579,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
         {lightboxImage && (
           <div 
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md px-4 cursor-zoom-out"
-            onClick={() => setLightboxImage(null)}
+            onClick={() => window.history.back()}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1565,15 +1589,9 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               className="relative max-w-3xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <button 
-                onClick={() => setLightboxImage(null)} 
-                className="absolute -top-12 right-0 text-white/70 hover:text-white transition"
-              >
-                <X size={28} strokeWidth={2} />
-              </button>
               <img 
                 src={lightboxImage} 
-                alt="Enlarged profile" 
+                alt="Enlarged content" 
                 className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl" 
               />
             </motion.div>
