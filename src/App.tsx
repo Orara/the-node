@@ -283,7 +283,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
 };
 
 const LiveConnectTray = ({ onUserClick }: { onUserClick: (user: any) => void }) => (
-  <div className="flex gap-5 overflow-x-auto px-6 py-8 scrollbar-hide">
+  <div className="flex gap-5 overflow-x-auto px-6 py-0 scrollbar-hide">
     {STORIES.map((story) => (
       <div 
         key={story.id} 
@@ -308,15 +308,11 @@ const LiveConnectTray = ({ onUserClick }: { onUserClick: (user: any) => void }) 
 
 const PremiumPostCard: React.FC<{ 
   post: Post, 
-  isFollowing?: boolean, 
-  onToggleFollow?: () => void, 
   onUserClick?: () => void,
   onCommentClick?: () => void,
   onLike?: () => void
 }> = ({ 
   post, 
-  isFollowing, 
-  onToggleFollow, 
   onUserClick,
   onCommentClick,
   onLike
@@ -328,58 +324,44 @@ const PremiumPostCard: React.FC<{
   const displayContent = isExpanded ? content : (shouldTruncate ? content.slice(0, 40) + '...' : content);
 
   return (
-    <article className="bg-white mx-4 md:mx-0 mb-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden">
-      {/* Post Header */}
-      <div className="flex items-center justify-between p-5">
-        <div className="flex items-center gap-4">
-          <img 
-            src={post.avatar} 
-            alt={post.user} 
-            onClick={onUserClick}
-            className="w-11 h-11 rounded-xl object-cover shadow-sm cursor-pointer hover:opacity-80 transition" 
-          />
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span 
-                onClick={onUserClick}
-                className="font-bold text-sm text-slate-900 cursor-pointer hover:underline"
-              >
-                {post.user}
-              </span>
-              {post.role === 'dealer' && <CheckCircle2 size={12} className="text-amber-600" fill="currentColor" stroke="white" />}
-              {post.isVerified && <CheckCircle2 size={12} className="text-slate-900" fill="currentColor" stroke="white" />}
+    <article className="bg-white mx-0 md:mx-0 mb-4 md:mb-16 md:rounded-[3rem] shadow-none md:shadow-[0_40px_80px_rgba(0,0,0,0.06)] border-b border-slate-100 md:border overflow-hidden group/card">
+      {/* Post Media & Integrated Header */}
+      <div className="relative aspect-square w-full overflow-hidden bg-slate-50 group">
+        {/* Post Header Overlay (Instagram Style Integrated) */}
+        <div className="absolute top-0 left-0 right-0 z-10 px-4 py-4 bg-gradient-to-b from-black/50 via-black/20 to-transparent pointer-events-none">
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <img 
+              src={post.avatar} 
+              alt={post.user} 
+              onClick={onUserClick}
+              className="w-9 h-9 rounded-full object-cover cursor-pointer border-2 border-white/20 shadow-lg hover:scale-105 transition duration-300" 
+            />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <span 
+                  onClick={onUserClick}
+                  className="font-bold text-sm text-white cursor-pointer hover:underline leading-none drop-shadow-md"
+                >
+                  {post.user}
+                </span>
+                {post.role === 'dealer' && <CheckCircle2 size={12} className="text-amber-400" fill="currentColor" stroke="white" />}
+                {post.isVerified && <CheckCircle2 size={12} className="text-white" fill="currentColor" stroke="black" />}
+              </div>
+              {post.location && <span className="text-[10px] text-white/80 font-medium tracking-tight mt-0.5 drop-shadow-sm">{post.location}</span>}
             </div>
-            {post.location && <span className="text-[10px] text-slate-300 font-medium tracking-tight">{post.location}</span>}
           </div>
         </div>
-      </div>
 
-      {/* Post Image/Video */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 group">
         {post.mediaType === 'video' ? (
-          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+          <video src={post.image} autoPlay muted loop playsInline className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
         ) : (
-          <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+          <img src={post.image} alt="Post content" className="w-full h-full object-cover transition duration-1000 group-hover:scale-110" />
         )}
-        
-        {/* Elegant Badge */}
-        <div className="absolute top-5 right-5">
-          {post.type === 'inquiry' && (
-            <span className="bg-white/90 backdrop-blur-md text-slate-900 border border-white/20 text-[10px] font-black tracking-widest uppercase px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5">
-              <FileText size={12} strokeWidth={2.5}/> Inquiry
-            </span>
-          )}
-          {post.type === 'promotion' && (
-            <span className="bg-slate-900/90 backdrop-blur-md text-white border border-slate-800 text-[10px] font-black tracking-widest uppercase px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5">
-              <CarFront size={12} strokeWidth={2.5}/> Promo
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Post Content & Actions */}
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-5">
+      <div className="px-5 py-5">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-5">
             <button onClick={onLike} className={`transition transform active:scale-90 ${post.isLiked ? 'text-rose-500' : 'text-slate-800 hover:text-slate-500'}`}>
               <Heart size={24} strokeWidth={1.5} fill={post.isLiked ? "currentColor" : "none"} />
@@ -390,9 +372,9 @@ const PremiumPostCard: React.FC<{
           <button className="text-slate-800 hover:text-slate-500 transition"><Bookmark size={24} strokeWidth={1.5} /></button>
         </div>
 
-        <p className="font-bold text-sm text-slate-900 mb-3">{post.likes} Likes</p>
+        <p className="font-bold text-sm text-slate-900 mb-2">{post.likes.toLocaleString()} Likes</p>
         
-        <div className="text-sm text-slate-700 leading-relaxed mb-3">
+        <div className="text-sm text-slate-700 leading-relaxed mb-2">
           <span className="font-bold text-slate-900 mr-2">{post.user}</span>
           {displayContent}
           {shouldTruncate && (
@@ -405,13 +387,13 @@ const PremiumPostCard: React.FC<{
           )}
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-3">
           {post.tags?.map(tag => (
             <span key={tag} className="text-xs font-medium text-amber-600">{tag}</span>
           ))}
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+        <div className="flex items-center justify-between border-t border-slate-50 pt-3 mt-1">
           <p className="text-[10px] text-slate-400 font-bold tracking-widest">{post.time}</p>
           <button 
             onClick={onCommentClick}
@@ -419,24 +401,6 @@ const PremiumPostCard: React.FC<{
           >
             View {post.comments.length} Comments <ChevronRight size={14} />
           </button>
-        </div>
-
-        {/* Action Button */}
-        <div className="mt-5">
-          {post.isVerified ? (
-            <div className="flex gap-3">
-              <button className="flex-1 bg-slate-900 hover:bg-black text-white font-bold text-sm py-3.5 rounded-xl transition shadow-md flex items-center justify-center gap-2">
-                <FileText size={16} /> 공식 견적 요청
-              </button>
-              <button className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-sm py-3.5 rounded-xl transition shadow-sm flex items-center justify-center gap-2 border border-amber-200">
-                <MessageSquare size={16} /> 실시간 상담
-              </button>
-            </div>
-          ) : (
-            <button className="w-full bg-slate-100 text-slate-400 font-bold text-sm py-3.5 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
-              <Lock size={16} /> 일반 유저 게시글
-            </button>
-          )}
         </div>
       </div>
     </article>
@@ -928,8 +892,6 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   <PremiumPostCard 
                     key={post.id} 
                     post={post} 
-                    isFollowing={followedUsers.includes(post.user)}
-                    onToggleFollow={() => toggleFollow(post.user)}
                     onUserClick={() => handleUserClick(post)}
                     onCommentClick={() => {
                       setActivePostId(post.id);
@@ -1017,6 +979,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       ref={cameraInputRef}
                       type="file" 
                       accept="image/*" 
+                      capture="environment"
                       className="hidden" 
                       onChange={handleMediaChange} 
                     />
@@ -1059,57 +1022,73 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="w-full pt-2 md:pt-8 px-4 md:px-0"
+              className="w-full pt-0 md:pt-8"
             >
-              {/* Profile Header */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
-                <div className="flex flex-col items-center">
+              {/* Instagram Style Profile Header */}
+              <div className="relative mb-6">
+                {/* Cover Image */}
+                <div className="h-32 md:h-48 w-full overflow-hidden bg-slate-100 md:rounded-3xl">
                   <img 
-                    src={viewingUser ? viewingUser.avatar : userProfile.avatar} 
-                    alt={viewingUser ? viewingUser.user : userProfile.user} 
-                    className="w-24 h-24 rounded-2xl object-cover shadow-md mb-4 cursor-pointer hover:opacity-90 transition" 
-                    onClick={() => setLightboxImage(viewingUser ? viewingUser.avatar : userProfile.avatar)}
+                    src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop" 
+                    className="w-full h-full object-cover opacity-80" 
+                    alt="cover" 
                   />
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <h2 className="text-2xl font-black text-slate-900">{viewingUser ? viewingUser.user : userProfile.user}</h2>
-                    {(viewingUser ? viewingUser.isVerified : userProfile.isVerified) && <CheckCircle2 size={20} className="text-amber-600" fill="currentColor" stroke="white" />}
-                  </div>
-                  <p className="text-sm text-slate-500 font-medium mb-3 text-center max-w-xs">
-                    {viewingUser ? viewingUser.statusMessage || 'THE NODE 프리미엄 회원입니다.' : userProfile.statusMessage}
-                  </p>
-                  
-                  {(viewingUser ? viewingUser.tags : userProfile.tags) && (viewingUser ? viewingUser.tags : userProfile.tags).length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-xs">
-                      {(viewingUser ? viewingUser.tags : userProfile.tags).map((tag: string, idx: number) => (
-                        <span key={idx} className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
-                          {tag}
-                        </span>
-                      ))}
+                </div>
+                
+                {/* Profile Info Container */}
+                <div className="px-6 -mt-12 md:-mt-16 relative z-10">
+                  <div className="flex flex-col">
+                    {/* Avatar & Stats Row */}
+                    <div className="flex items-end justify-between mb-4">
+                      <div className="relative">
+                        <img 
+                          src={viewingUser ? viewingUser.avatar : userProfile.avatar} 
+                          alt={viewingUser ? viewingUser.user : userProfile.user} 
+                          className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white object-cover shadow-lg bg-white"
+                          onClick={() => setLightboxImage(viewingUser ? viewingUser.avatar : userProfile.avatar)}
+                        />
+                      </div>
+                      
+                      {/* Stats */}
+                      <div className="flex gap-4 md:gap-8 mb-2 pr-2">
+                        <div className="flex flex-col items-center">
+                          <span className="text-base md:text-lg font-bold text-slate-900">
+                            {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).length}
+                          </span>
+                          <span className="text-[9px] md:text-[10px] text-slate-400 font-bold tracking-widest uppercase">Posts</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-base md:text-lg font-bold text-slate-900">
+                            {viewingUser ? (followedUsers.includes(viewingUser.user) ? '12.5K' : '12.4K') : userProfile.followers}
+                          </span>
+                          <span className="text-[9px] md:text-[10px] text-slate-400 font-bold tracking-widest uppercase">Followers</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-base md:text-lg font-bold text-slate-900">{viewingUser ? '450' : userProfile.following}</span>
+                          <span className="text-[9px] md:text-[10px] text-slate-400 font-bold tracking-widest uppercase">Following</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  
-                  <div className="flex gap-8 mb-6 w-full justify-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">
-                        {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).length}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Posts</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">
-                        {viewingUser ? (followedUsers.includes(viewingUser.user) ? '12.5K' : '12.4K') : userProfile.followers}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Followers</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xl font-bold text-slate-900">{viewingUser ? '450' : userProfile.following}</span>
-                      <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Following</span>
-                    </div>
-                  </div>
 
-                  <div className="flex gap-3 w-full max-w-xs">
-                    {!viewingUser ? (
-                      <>
+                    {/* Name & Bio */}
+                    <div className="mb-5">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <h2 className="text-xl md:text-2xl font-black text-slate-900">{viewingUser ? viewingUser.user : userProfile.user}</h2>
+                        {(viewingUser ? viewingUser.isVerified : userProfile.isVerified) && <CheckCircle2 size={18} className="text-amber-600" fill="currentColor" stroke="white" />}
+                      </div>
+                      <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                        {viewingUser ? viewingUser.statusMessage || 'THE NODE 프리미엄 회원입니다.' : userProfile.statusMessage}
+                      </p>
+                      {viewingUser?.location && (
+                        <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                          <CarFront size={12} /> {viewingUser.location}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 w-full">
+                      {!viewingUser ? (
                         <button 
                           onClick={() => {
                             setEditProfileData({ 
@@ -1119,57 +1098,48 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                             });
                             setShowEditProfile(true);
                           }}
-                          className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-900 text-white hover:bg-black transition shadow-sm"
+                          className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 transition shadow-sm"
                         >
                           프로필 편집
                         </button>
-                        <button 
-                          onClick={onLogout}
-                          className="py-3 px-4 rounded-xl font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 transition shadow-sm"
-                        >
-                          로그아웃
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => toggleFollow(viewingUser.user)}
-                          className={`flex-1 py-3 rounded-xl font-bold text-sm transition shadow-sm ${
-                            followedUsers.includes(viewingUser.user)
-                              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              : viewingUser.isVerified
-                                ? 'bg-amber-600 text-white hover:bg-amber-700'
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleFollow(viewingUser.user)}
+                            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition shadow-sm ${
+                              followedUsers.includes(viewingUser.user)
+                                ? 'bg-slate-100 text-slate-600'
                                 : 'bg-slate-900 text-white hover:bg-black'
-                          }`}
-                        >
-                          {followedUsers.includes(viewingUser.user) ? '팔로잉' : '팔로우'}
-                        </button>
-                        <button 
-                          onClick={() => setViewingUser(null)}
-                          className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-900 border border-slate-200 hover:bg-slate-100 transition shadow-sm"
-                        >
-                          내 프로필
-                        </button>
-                      </>
-                    )}
+                            }`}
+                          >
+                            {followedUsers.includes(viewingUser.user) ? '팔로잉' : '팔로우'}
+                          </button>
+                          <button 
+                            className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 transition shadow-sm"
+                          >
+                            메시지 보내기
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* My Posts Grid */}
-              <div className="grid grid-cols-3 gap-1 md:gap-2">
+              <div className="grid grid-cols-3 gap-0.5 md:gap-2 px-0.5 md:px-0">
                 {posts.filter(p => p.user === (viewingUser ? viewingUser.user : userProfile.user)).map(post => (
-                  <div key={post.id} className="aspect-square bg-slate-200 relative group cursor-pointer overflow-hidden rounded-lg md:rounded-xl">
+                  <div key={post.id} className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xl">
                     {post.mediaType === 'video' ? (
                       <video src={post.image} className="w-full h-full object-cover" />
                     ) : (
                       <img src={post.image} alt="post" className="w-full h-full object-cover" />
                     )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
-                      <div className="flex items-center gap-1 font-bold text-sm">
+                      <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
                         <Heart size={16} fill="currentColor" /> {post.likes}
                       </div>
-                      <div className="flex items-center gap-1 font-bold text-sm">
+                      <div className="flex items-center gap-1 font-bold text-xs md:text-sm">
                         <MessageSquare size={16} fill="currentColor" /> {post.comments.length}
                       </div>
                     </div>
