@@ -630,6 +630,24 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
   const [profileViewMode, setProfileViewMode] = useState<'grid' | 'list'>('grid');
   const [homeViewMode, setHomeViewMode] = useState<'normal' | 'expanded'>('normal');
   
+  // Handle Native Back Button for Expanded View
+  useEffect(() => {
+    const handlePopState = () => {
+      if (homeViewMode === 'expanded') {
+        setHomeViewMode('normal');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [homeViewMode]);
+
+  useEffect(() => {
+    if (homeViewMode === 'expanded') {
+      window.history.pushState({ mode: 'expanded' }, '');
+    }
+  }, [homeViewMode]);
+
   const [userProfile, setUserProfile] = useState({ 
     user: '현재 유저',
     avatar: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=150&auto=format&fit=crop',
@@ -930,25 +948,10 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col h-[calc(100vh-60px)] md:h-[calc(100vh-40px)] overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
-                  {/* Expanded Feed Header */}
-                  <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-slate-100/50">
-                    <button 
-                      onClick={() => {
-                        setHomeViewMode('normal');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }} 
-                      className="p-2 hover:bg-slate-100 rounded-full transition text-slate-900 active:scale-95"
-                    >
-                      <ChevronLeft size={24} strokeWidth={2.5} />
-                    </button>
-                    <h2 className="text-[11px] font-black tracking-[0.2em] text-slate-900 uppercase">Explore</h2>
-                    <div className="w-10" /> {/* Spacer for centering */}
-                  </div>
-                  
+                <div className="flex flex-col h-screen overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
                   <div className="flex flex-col">
                     {posts.map(post => (
-                      <div key={post.id} id={`post-expanded-${post.id}`} className="snap-start min-h-[calc(100vh-120px)] flex flex-col justify-center py-4">
+                      <div key={post.id} id={`post-expanded-${post.id}`} className="snap-start min-h-screen flex flex-col justify-center py-4">
                         <PremiumPostCard 
                           post={post} 
                           onUserClick={() => handleUserClick(post)}
@@ -963,12 +966,11 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                     ))}
                   </div>
 
-                  {/* Back to Normal Feed Button at bottom */}
-                  <div className="px-6 pb-20 snap-end">
+                  {/* Back to Normal Feed Button at bottom (Optional fallback) */}
+                  <div className="px-6 pb-32 snap-end">
                     <button 
                       onClick={() => {
-                        setHomeViewMode('normal');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        window.history.back(); // Use history back to trigger popstate
                       }}
                       className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 transition shadow-sm"
                     >
@@ -1047,7 +1049,7 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                   <div className="flex items-center gap-4 text-slate-400">
                     <button 
                       onClick={() => cameraInputRef.current?.click()}
-                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
+                      className="cursor-pointer hover:text-amber-600 active:scale-90 transition flex items-center justify-center"
                     >
                       <Camera size={22} strokeWidth={1.5} />
                     </button>
@@ -1057,21 +1059,24 @@ const MainApp = ({ onLogout }: { onLogout: () => void }) => {
                       accept="image/*" 
                       capture="environment"
                       className="hidden" 
-                      onChange={handleMediaChange} 
+                      onChange={handleMediaChange}
+                      onClick={(e) => (e.target as any).value = null}
                     />
                     
                     <button 
                       onClick={() => photoInputRef.current?.click()}
-                      className="cursor-pointer hover:text-amber-600 transition flex items-center justify-center"
+                      className="cursor-pointer hover:text-amber-600 active:scale-90 transition flex items-center justify-center"
                     >
                       <ImageIcon size={22} strokeWidth={1.5} />
                     </button>
                     <input 
                       ref={photoInputRef}
                       type="file" 
-                      accept="image/*,video/*" 
+                      accept="image/*,video/*"
+                      multiple
                       className="hidden" 
-                      onChange={handleMediaChange} 
+                      onChange={handleMediaChange}
+                      onClick={(e) => (e.target as any).value = null}
                     />
                   </div>
                   
